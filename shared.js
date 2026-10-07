@@ -1,6 +1,6 @@
 /**
  * SHARED UTILITIES - Cipher Hangman Project
- * Common functions used across cipher-hangman.html and menu.html
+ * Common functions used across cipher-hangman.html and index.html
  */
 
 // ==========================================================================

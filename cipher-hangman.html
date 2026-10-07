@@ -997,7 +997,7 @@
 
         // Generate a random cipher (Caesar, ROT13, A1Z26, or Atbash)
         function generateCipher() {
-            // Read selected ciphers from sessionStorage (set by menu.html)
+            // Read selected ciphers from sessionStorage (set by index.html)
             let cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse'];
             try {
                 const selected = sessionStorage.getItem('cipherHangmanSelectedCiphers');
@@ -1598,7 +1598,7 @@
         });
         modalMenuBtn.addEventListener('click', () => {
             hideModal();
-            window.location.href = 'menu.html';
+            window.location.href = 'index.html';
         });
         alphabetToggleBtn.addEventListener('click', toggleAlphabetPanel);
         cipherListToggleBtn.addEventListener('click', toggleCipherListPanel);
@@ -1610,7 +1610,7 @@
         });
         settingsMenuBtn.addEventListener('click', () => {
             settingsModalOverlay.className = 'modal-overlay';
-            window.location.href = 'menu.html';
+            window.location.href = 'index.html';
         });
         showCipherToggle.addEventListener('change', (e) => {
             showCipherType = e.target.checked;
