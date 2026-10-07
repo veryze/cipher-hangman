@@ -1,0 +1,253 @@
+/* ==========================================================================
+   SHARED STYLES - Cipher Hangman Project
+   ========================================================================== */
+
+/* ---- Reset & Base ---- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Courier New', Courier, monospace;
+    background: #ffffff;
+    color: #1a1a1a;
+    min-height: 100vh;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+h1 {
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #1a1a1a;
+}
+
+.subtitle {
+    color: #666;
+    font-weight: 400;
+}
+
+.project-info {
+    color: #888;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+/* ---- Panel ---- */
+.panel {
+    background: #fafafa;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 24px;
+}
+
+.panel h2 {
+    color: #1a1a1a;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ---- Info Panel ---- */
+.info-panel {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 20px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: #666;
+    font-size: 13px;
+}
+
+.info-value {
+    color: #1a1a1a;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.info-value.warning { color: #b8860b; }
+.info-value.danger { color: #c00; }
+
+/* ---- Buttons ---- */
+.btn {
+    padding: 12px 24px;
+    background: #fff;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    color: #333;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn:hover {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+    color: #fff;
+}
+
+.btn.primary {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+    color: #fff;
+}
+
+.btn.primary:hover {
+    background: #333;
+    border-color: #333;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn.danger {
+    background: #fff;
+    border-color: #c00;
+    color: #c00;
+}
+
+.btn.danger:hover {
+    background: #c00;
+    border-color: #c00;
+    color: #fff;
+}
+
+/* ---- Modal System ---- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-overlay.show {
+    display: flex;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.modal {
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    animation: slideUp 0.3s;
+}
+
+@keyframes slideUp {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+.modal.win { border-color: #2e7d32; }
+.modal.lose { border-color: #c00; }
+.modal.win h2 { color: #2e7d32; }
+.modal.lose h2 { color: #c00; }
+
+.modal h2 {
+    margin-bottom: 12px;
+    font-size: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.modal p {
+    color: #666;
+    margin-bottom: 24px;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.modal-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.modal-controls .btn {
+    min-width: auto;
+    width: 100%;
+}
+
+/* ---- Animations ---- */
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@keyframes slideUp {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.95); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 800px) {
+    .game-area { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1000px) {
+    .side-toolbar, .side-panel { display: none; }
+}
+
+@media (max-width: 600px) {
+    .container { padding: 0 10px; }
+    .panel { padding: 20px; }
+    .top-bar { flex-direction: column; gap: 12px; }
+    .top-bar h1, .top-bar .subtitle { text-align: center; }
+}

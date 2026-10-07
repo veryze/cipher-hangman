@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipher × Hangman — Menu</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: #ffffff;
+            color: #1a1a1a;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 24px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            font-weight: 400;
+            margin-bottom: 8px;
+        }
+
+        .project-info {
+            color: #888;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .panel {
+            background: #fafafa;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .panel h2 {
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 18px 24px;
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            color: #333;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+            margin-bottom: 12px;
+        }
+
+        .menu-btn:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .menu-btn:hover {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .menu-btn.primary {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .menu-btn.primary:hover {
+            background: #333;
+            border-color: #333;
+        }
+
+        .menu-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f5f5f5;
+            border-color: #ddd;
+            color: #999;
+        }
+
+        .menu-btn:disabled:hover {
+            background: #f5f5f5;
+            border-color: #ddd;
+            color: #999;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .modal {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .modal p {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .cipher-toggle-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .cipher-category {
+            padding: 16px;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        .cipher-category h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .cipher-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cipher-option:last-child {
+            border-bottom: none;
+        }
+
+        .cipher-option label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .cipher-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #2e7d32;
+            cursor: pointer;
+        }
+
+        .cipher-option .cipher-desc {
+            font-size: 12px;
+            color: #888;
+            font-style: italic;
+        }
+
+        .toggle-all {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .toggle-all label {
+            font-weight: 600;
+            color: #1a1a1a;
+            cursor: pointer;
+        }
+
+        .modal-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-controls .btn {
+            min-width: 120px;
+            padding: 12px 24px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            color: #333;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn:hover {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .btn.primary {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .btn.primary:hover {
+            background: #333;
+            border-color: #333;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 0 10px;
+            }
+            .panel {
+                padding: 20px;
+            }
+            .modal {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CIPHER × HANGMAN</h1>
+            <p class="subtitle">LNG302 Project — Mana Ganesh Kawamura</p>
+            <p class="project-info">Information Theory & Cryptography</p>
+        </header>
+
+        <div class="panel">
+            <h2>Main Menu</h2>
+            
+            <button class="menu-btn primary" id="newGameBtn">NEW GAME</button>
+            <button class="menu-btn" id="cipherInfoBtn">CIPHER REFERENCE</button>
+            <button class="menu-btn" id="aboutBtn">ABOUT</button>
+        </div>
+
+        <footer style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e0e0e0; color: #888; font-size: 13px;">
+            <p>Cipher Hangman — LNG302 Project</p>
+            <p>Mana Ganesh Kawamura, 2026</p>
+        </footer>
+    </div>
+
+    <!-- New Game Modal -->
+    <div class="modal-overlay" id="newGameModalOverlay">
+        <div class="modal">
+            <h2>New Game Options</h2>
+            <p>Select which cipher types to include in the rotation:</p>
+            
+            <div class="toggle-all">
+                <label>
+                    <input type="checkbox" id="toggleAllCiphers" checked>
+                    Select / Deselect All
+                </label>
+            </div>
+
+            <div class="cipher-toggle-group">
+                <div class="cipher-category">
+                    <h3>Alphabet Substitution Ciphers</h3>
+                    
+                    <div class="cipher-option">
+                        <label>
+                            <input type="checkbox" class="cipher-checkbox" value="caesar" checked>
+                            <span>Caesar <span class="cipher-desc">(shift ±1–26)</span></span>
+                        </label>
+                    </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="checkbox" class="cipher-checkbox" value="rot13" checked>
+                            <span>ROT13 <span class="cipher-desc">(fixed shift 13)</span></span>
+                        </label>
+                    </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="checkbox" class="cipher-checkbox" value="atbash" checked>
+                            <span>Atbash <span class="cipher-desc">(reverse alphabet)</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="cipher-category">
+                    <h3>Number Encoding Ciphers</h3>
+                    
+                    <div class="cipher-option">
+                        <label>
+                            <input type="checkbox" class="cipher-checkbox" value="a1z26" checked>
+                            <span>A1Z26 <span class="cipher-desc">(letters → numbers 1–26)</span></span>
+                        </label>
+                    </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="checkbox" class="cipher-checkbox" value="binary" checked>
+                            <span>Binary <span class="cipher-desc">(letters → 5-bit binary)</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="cipher-category">
+                    <h3>Signal Ciphers</h3>
+                    
+                    <div class="cipher-option">
+                        <label>
+                            <input type="checkbox" class="cipher-checkbox" value="morse" checked>
+                            <span>Morse Code <span class="cipher-desc">(dots and dashes)</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-controls">
+                <button class="btn" id="newGameCancelBtn">CANCEL</button>
+                <button class="btn primary" id="newGameStartBtn">START GAME</button>
+                <button class="btn" id="resetPrefsBtn" style="margin-left: auto;">RESET TO DEFAULTS</button>
+            </div>
+        </div>
+
+    <script>
+        // Cipher selection state (persisted in localStorage)
+        let enabledCiphers = {
+            caesar: true,
+            rot13: true,
+            atbash: true,
+            a1z26: true,
+            binary: true,
+            morse: true
+        };
+
+        // Load saved preferences
+        function loadCipherPrefs() {
+            const saved = localStorage.getItem('cipherHangmanPrefs');
+            if (saved) {
+                try {
+                    enabledCiphers = { ...enabledCiphers, ...JSON.parse(saved) };
+                } catch (e) {
+                    console.warn('Failed to parse saved preferences');
+                }
+            }
+            updateCheckboxes();
+        }
+
+        function saveCipherPrefs() {
+            localStorage.setItem('cipherHangmanPrefs', JSON.stringify(enabledCiphers));
+        }
+
+        function updateCheckboxes() {
+            document.querySelectorAll('.cipher-checkbox').forEach(cb => {
+                cb.checked = enabledCiphers[cb.value];
+            });
+            updateToggleAll();
+        }
+
+        function updateToggleAll() {
+            const allChecked = Object.values(enabledCiphers).every(v => v);
+            const anyChecked = Object.values(enabledCiphers).some(v => v);
+            const toggleAll = document.getElementById('toggleAllCiphers');
+            toggleAll.checked = allChecked;
+            toggleAll.indeterminate = !allChecked && anyChecked;
+        }
+
+        // DOM elements
+        const newGameBtn = document.getElementById('newGameBtn');
+        const cipherInfoBtn = document.getElementById('cipherInfoBtn');
+        const aboutBtn = document.getElementById('aboutBtn');
+        const newGameModalOverlay = document.getElementById('newGameModalOverlay');
+        const toggleAllCiphers = document.getElementById('toggleAllCiphers');
+        const newGameCancelBtn = document.getElementById('newGameCancelBtn');
+        const newGameStartBtn = document.getElementById('newGameStartBtn');
+
+        // Open New Game modal
+        newGameBtn.addEventListener('click', () => {
+            newGameModalOverlay.className = 'modal-overlay show';
+        });
+
+        // Close modal handlers
+        function closeNewGameModal() {
+            newGameModalOverlay.className = 'modal-overlay';
+        }
+
+        newGameCancelBtn.addEventListener('click', closeNewGameModal);
+        newGameModalOverlay.addEventListener('click', (e) => {
+            if (e.target === newGameModalOverlay) closeNewGameModal();
+        });
+
+        // Toggle all checkboxes
+        toggleAllCiphers.addEventListener('change', (e) => {
+            const checked = e.target.checked;
+            Object.keys(enabledCiphers).forEach(key => {
+                enabledCiphers[key] = checked;
+            });
+            updateCheckboxes();
+        });
+
+        // Individual cipher checkboxes
+        document.querySelectorAll('.cipher-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                enabledCiphers[e.target.value] = e.target.checked;
+                // Ensure at least one is selected
+                if (!Object.values(enabledCiphers).some(v => v)) {
+                    e.target.checked = true;
+                    enabledCiphers[e.target.value] = true;
+                }
+                updateToggleAll();
+            });
+        });
+
+        // Start game with selected ciphers
+        newGameStartBtn.addEventListener('click', () => {
+            const selected = Object.entries(enabledCiphers).filter(([_, v]) => v).map(([k]) => k);
+            if (selected.length === 0) return;
+            
+            saveCipherPrefs();
+            closeNewGameModal();
+            
+            // Pass selected ciphers to game via sessionStorage
+            sessionStorage.setItem('cipherHangmanSelectedCiphers', JSON.stringify(selected));
+            window.location.href = 'cipher-hangman.html';
+        });
+
+        // Other menu buttons
+        cipherInfoBtn.addEventListener('click', () => {
+            window.location.href = 'cipher-info.html';
+        });
+
+        aboutBtn.addEventListener('click', () => {
+            window.location.href = 'cipher-about.html';
+        });
+
+        // Reset preferences
+        const resetPrefsBtn = document.getElementById('resetPrefsBtn');
+        resetPrefsBtn.addEventListener('click', () => {
+            enabledCiphers = {
+                caesar: true,
+                rot13: true,
+                atbash: true,
+                a1z26: true,
+                binary: true,
+                morse: true
+            };
+            saveCipherPrefs();
+            updateCheckboxes();
+        });
+
+        // Initialize
+        loadCipherPrefs();
+    </script>
+</body>
+</html>

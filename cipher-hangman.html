@@ -1,0 +1,1959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipher Hangman</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: #ffffff;
+            color: #1a1a1a;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            align-items: start;
+        }
+
+        @media (max-width: 800px) {
+            .game-area {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: #fafafa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .panel h2 {
+            color: #1a1a1a;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .info-value {
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .info-value.warning {
+            color: #b8860b;
+        }
+
+        .info-value.danger {
+            color: #c00;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            gap: 20px;
+        }
+
+        .title-group {
+            flex: 1;
+        }
+
+        .top-bar h1 {
+            text-align: left;
+            margin-bottom: 4px;
+        }
+
+        .top-bar .subtitle {
+            text-align: left;
+            margin-bottom: 0;
+        }
+
+        .settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: #fafafa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            color: #333;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: default;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+
+        .settings-btn:hover {
+            border-color: #ddd;
+            background: #f5f5f5;
+        }
+
+        .settings-icon {
+            font-size: 16px;
+        }
+
+        .settings-cipher {
+            font-family: 'Courier New', Courier, monospace;
+            color: #2e7d32;
+        }
+
+        /* Side Toolbar */
+        .game-area {
+            position: relative;
+        }
+
+        .side-toolbar {
+            position: fixed;
+            right: 20px;
+            top: 140px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toolbar-btn {
+            width: 44px;
+            height: 44px;
+            background: #1a1a1a;
+            border: 2px solid #1a1a1a;
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .toolbar-btn:hover {
+            background: #333;
+            border-color: #333;
+        }
+
+        .toolbar-btn.active {
+            background: #2e7d32;
+            border-color: #2e7d32;
+        }
+
+        /* Side Panels */
+        .side-panel {
+            position: fixed;
+            right: 70px;
+            top: 140px;
+            z-index: 99;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(10px);
+            transition: all 0.2s;
+        }
+
+        .side-panel.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        .panel-content {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            min-width: 200px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            white-space: nowrap;
+        }
+
+        .panel-content h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .alphabet-grid {
+            display: grid;
+            grid-template-columns: repeat(13, 1fr);
+            gap: 4px;
+        }
+
+        .alphabet-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 6px 4px;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .alphabet-item .letter {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .alphabet-item .position {
+            font-size: 11px;
+            color: #888;
+            font-weight: 500;
+        }
+
+        .cipher-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cipher-list li {
+            padding: 0;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #333;
+            font-family: 'Courier New', Courier, monospace;
+            transition: all 0.15s;
+        }
+
+        .cipher-list li a {
+            display: block;
+            padding: 8px 10px;
+            color: inherit;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .cipher-list li:hover {
+            background: #f0f0f0;
+            border-color: #ddd;
+        }
+
+        .cipher-list li.current {
+            background: #e8f5e9;
+            border-color: #2e7d32;
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .cipher-list li.current a {
+            color: inherit;
+        }
+
+        @media (max-width: 1000px) {
+            .side-toolbar,
+            .side-panel {
+                display: none;
+            }
+            .top-bar h1 {
+                text-align: center;
+            }
+            .top-bar .subtitle {
+                text-align: center;
+            }
+        }
+
+        /* Cipher Display */
+        .cipher-container {
+            margin-bottom: 20px;
+        }
+
+        .phrase-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            justify-content: center;
+            margin-bottom: 15px;
+            min-height: 70px;
+            align-items: flex-end;
+        }
+
+        .word-group {
+            display: flex;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .char-box {
+            width: 40px;
+            height: 52px;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-bottom-width: 3px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 8px;
+            font-size: 20px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .char-box.space {
+            width: 16px;
+            border: none;
+            background: transparent;
+        }
+
+        .char-box .encoded {
+            color: #666;
+            font-size: 22px;
+            letter-spacing: 0;
+            transition: all 0.2s;
+        }
+
+        /* A1Z26 specific styling for multi-digit numbers */
+        .wide-mode .char-box {
+            width: 56px;
+            font-size: 14px;
+        }
+
+        .wide-mode .char-box .encoded {
+            font-size: 16px;
+        }
+
+        .char-box .decoded {
+            color: #2e7d32;
+            font-size: 18px;
+            min-height: 22px;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: all 0.2s;
+            font-weight: 700;
+        }
+
+        .char-box.revealed .encoded {
+            color: #ccc;
+        }
+
+        .char-box.revealed .decoded {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .char-box.wrong-guess {
+            animation: shake 0.3s;
+            border-color: #c00;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        /* Hangman Canvas */
+        .hangman-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #hangmanCanvas {
+            background: #fafafa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .lives-display {
+            font-size: 16px;
+            color: #c00;
+            font-weight: 600;
+        }
+
+        /* Keyboard */
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            margin-top: 20px;
+        }
+
+        .key {
+            padding: 10px 8px;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            color: #333;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .key:hover:not(:disabled) {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .key:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .key.used-correct {
+            background: #e8f5e9;
+            border-color: #2e7d32;
+            color: #2e7d32;
+        }
+
+        .key.used-wrong {
+            background: #fdeaea;
+            border-color: #c00;
+            color: #c00;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            color: #333;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn:hover {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .btn.primary {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .btn.primary:hover {
+            background: #333;
+            border-color: #333;
+        }
+
+        /* Status Message */
+        .status {
+            text-align: center;
+            padding: 16px;
+            margin-top: 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            display: none;
+            border: 2px solid;
+        }
+
+        .status.show {
+            display: block;
+            animation: popIn 0.4s;
+        }
+
+        .status.win {
+            background: #e8f5e9;
+            border-color: #2e7d32;
+            color: #2e7d32;
+        }
+
+        .status.lose {
+            background: #fdeaea;
+            border-color: #c00;
+            color: #c00;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .modal {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal.win {
+            border-color: #2e7d32;
+        }
+
+        .modal.lose {
+            border-color: #c00;
+        }
+
+        .modal h2 {
+            margin-bottom: 12px;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .modal.win h2 {
+            color: #2e7d32;
+        }
+
+        .modal.lose h2 {
+            color: #c00;
+        }
+
+        .modal p {
+            color: #333;
+            margin-bottom: 24px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .modal-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .modal-controls .btn {
+            min-width: auto;
+            width: 100%;
+        }
+
+        /* Settings Modal */
+        .settings-modal {
+            max-width: 360px;
+            padding: 24px;
+        }
+
+        .settings-modal h2 {
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .setting-row {
+            margin-bottom: 16px;
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .toggle-text {
+            font-weight: 500;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ddd;
+            border-radius: 28px;
+            transition: all 0.2s;
+        }
+
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #2e7d32;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .toggle-switch input:focus + .toggle-slider {
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.3);
+        }
+
+        /* Tester Modal */
+        .tester-modal {
+            max-width: 500px;
+            padding: 24px;
+        }
+
+        .tester-modal h2 {
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .tester-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .control-row label {
+            min-width: 80px;
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .control-row select,
+        .control-row input[type="number"] {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            background: #fff;
+            color: #333;
+        }
+
+        .control-row select:focus,
+        .control-row input[type="number"]:focus {
+            outline: none;
+            border-color: #2e7d32;
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2);
+        }
+
+        .tester-textareas {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .textarea-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .textarea-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .textarea-group textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            background: #fafafa;
+            color: #333;
+            transition: border-color 0.15s;
+        }
+
+        .textarea-group textarea:focus {
+            outline: none;
+            border-color: #2e7d32;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+        }
+
+        .textarea-group textarea[readonly] {
+            background: #fff;
+            color: #1a1a1a;
+        }
+
+        @media (max-width: 550px) {
+            .tester-textareas {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Bar: Title + Settings -->
+        <header class="top-bar">
+            <div class="title-group">
+                <h1>CIPHER HANGMAN</h1>
+                <p class="subtitle">Decode the phrase before the hangman completes!</p>
+            </div>
+            <button class="settings-btn" id="settingsBtn" aria-label="Settings">
+                <span class="settings-icon">⚙</span>
+            </button>
+        </header>
+
+        <div class="game-area">
+            <!-- Side Toolbar: Three Toggle Buttons -->
+            <aside class="side-toolbar" id="sideToolbar">
+                <button class="toolbar-btn" id="alphabetToggleBtn" aria-label="Toggle alphabet reference" title="Alphabet Positions (A=1)">
+                    <span class="toolbar-icon">A↔1</span>
+                </button>
+                <button class="toolbar-btn" id="cipherListToggleBtn" aria-label="Toggle cipher list" title="Cipher Types">
+                    <span class="toolbar-icon">🔐</span>
+                </button>
+                <button class="toolbar-btn" id="testerToggleBtn" aria-label="Toggle cipher tester" title="Cipher Tester">
+                    <span class="toolbar-icon">🧪</span>
+                </button>
+            </aside>
+
+            <!-- Alphabet Reference Panel -->
+            <aside class="side-panel" id="alphabetPanel">
+                <div class="panel-content" id="alphabetContent">
+                    <h3>Alphabet Positions</h3>
+                    <div class="alphabet-grid" id="alphabetGrid"></div>
+                </div>
+            </aside>
+
+            <!-- Cipher List Panel -->
+            <aside class="side-panel" id="cipherListPanel">
+                <div class="panel-content" id="cipherListContent">
+                    <h3>Cipher Types</h3>
+                    <ul class="cipher-list" id="cipherList">
+                        <li data-cipher="caesar"><a href="cipher-info.html#caesar">Caesar (shift ±1–26)</a></li>
+                        <li data-cipher="rot13"><a href="cipher-info.html#rot13">ROT13 (shift 13)</a></li>
+                        <li data-cipher="atbash"><a href="cipher-info.html#atbash">Atbash (reverse)</a></li>
+                        <li data-cipher="a1z26"><a href="cipher-info.html#a1z26">A1Z26 (letters→numbers)</a></li>
+                        <li data-cipher="binary"><a href="cipher-info.html#binary">Binary (5-bit)</a></li>
+                        <li data-cipher="morse"><a href="cipher-info.html#morse">Morse Code</a></li>
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Left Panel: Cipher Phrase -->
+            <div class="panel">
+                <h2>ENCODED PHRASE</h2>
+                <div class="info-panel" id="infoPanel">
+                    <div class="info-row">
+                        <span class="info-label">Surprisal:</span>
+                        <span class="info-value" id="surprisalDisplay">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Entropy:</span>
+                        <span class="info-value" id="entropyDisplay">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Remaining Entropy:</span>
+                        <span class="info-value" id="remainingEntropyDisplay">—</span>
+                    </div>
+                    <div class="info-row" id="activeCiphersRow">
+                        <span class="info-label">Active Ciphers:</span>
+                        <span class="info-value" id="activeCiphersDisplay" style="font-size: 12px;">—</span>
+                    </div>
+                </div>
+                <div class="cipher-container">
+                    <div class="phrase-row" id="phraseRow"></div>
+                </div>
+                <div class="controls">
+                    <button class="btn primary" id="newGameBtn">NEW GAME</button>
+                    <button class="btn" id="hintBtn">HINT (-1 LIFE)</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Hangman + Keyboard -->
+            <div class="panel">
+                <div class="hangman-container">
+                    <canvas id="hangmanCanvas" width="300" height="350"></canvas>
+                    <div class="lives-display">
+                        Lives: <span id="livesDisplay">7</span>
+                    </div>
+                </div>
+
+                <div class="keyboard" id="keyboard"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Overlay (Game End) -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="gameModal">
+            <h2 id="modalTitle"></h2>
+            <p id="modalMessage"></p>
+            <p id="modalCipherInfo" style="font-size: 13px; color: #888; font-style: italic; margin-top: 8px;"></p>
+            <div class="modal-controls">
+                <button class="btn primary" id="modalNewGameBtn">NEW GAME</button>
+                <button class="btn" id="modalMenuBtn">MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal Overlay -->
+    <div class="modal-overlay" id="settingsModalOverlay">
+        <div class="modal settings-modal" id="settingsModal">
+            <h2>Settings</h2>
+            <div class="setting-row">
+                <label class="toggle-label">
+                    <span class="toggle-text">Show Cipher Type</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showCipherToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </label>
+            </div>
+            <div class="setting-row">
+                <label class="toggle-label">
+                    <span class="toggle-text">Show Active Ciphers</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showActiveCiphersToggle" unchecked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </label>
+            </div>
+            <div class="setting-row">
+                <label class="toggle-label">
+                    <span class="toggle-text">Show Info Panel</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showInfoPanelToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </label>
+            </div>
+            <div class="modal-controls">
+                <button class="btn" id="settingsMenuBtn">MENU</button>
+                <button class="btn primary" id="settingsCloseBtn">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tester Modal Overlay -->
+    <div class="modal-overlay" id="testerModalOverlay">
+        <div class="modal tester-modal" id="testerModal">
+            <h2>Cipher Tester</h2>
+            <div class="tester-controls">
+                <div class="control-row">
+                    <label for="testerCipherSelect">Cipher:</label>
+                    <select id="testerCipherSelect">
+                        <option value="caesar">Caesar</option>
+                        <option value="rot13">ROT13</option>
+                        <option value="atbash">Atbash</option>
+                        <option value="a1z26">A1Z26</option>
+                        <option value="binary">Binary</option>
+                        <option value="morse">Morse Code</option>
+                    </select>
+                </div>
+                <div class="control-row" id="testerOffsetRow">
+                    <label for="testerOffset">Offset:</label>
+                    <input type="number" id="testerOffset" min="-26" max="26" value="3" step="1">
+                </div>
+            </div>
+            <div class="tester-textareas">
+                <div class="textarea-group">
+                    <label>Input</label>
+                    <textarea id="testerInput" placeholder="Type text to encode..."></textarea>
+                </div>
+                <div class="textarea-group">
+                    <label>Output</label>
+                    <textarea id="testerOutput" readonly placeholder="Encoded result appears here..."></textarea>
+                </div>
+            </div>
+            <div class="modal-controls">
+                <button class="btn primary" id="testerCloseBtn">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e0e0e0; color: #888; font-size: 13px;">
+        <p>Cipher Hangman — LNG302 Project</p>
+        <p>Mana Ganesh Kawamura, 2026</p>
+    </footer>
+
+    <script>
+        // English letter frequencies (from typical corpus analysis)
+        const ENGLISH_FREQ = {
+            'A': 0.082, 'B': 0.015, 'C': 0.028, 'D': 0.043, 'E': 0.127,
+            'F': 0.022, 'G': 0.020, 'H': 0.061, 'I': 0.070, 'J': 0.002,
+            'K': 0.008, 'L': 0.040, 'M': 0.024, 'N': 0.067, 'O': 0.075,
+            'P': 0.019, 'Q': 0.001, 'R': 0.060, 'S': 0.063, 'T': 0.091,
+            'U': 0.028, 'V': 0.010, 'W': 0.024, 'X': 0.002, 'Y': 0.020,
+            'Z': 0.001, ' ': 0.130
+        };
+
+        // Calculate surprisal: -log2(P(x))
+        function calculateSurprisal(phrase) {
+            let totalSurprisal = 0;
+            let charCount = 0;
+            
+            for (const char of phrase) {
+                const upperChar = char.toUpperCase();
+                const prob = ENGLISH_FREQ[upperChar] || 0.0001; // Small epsilon for unknown
+                const surprisal = -Math.log2(prob);
+                totalSurprisal += surprisal;
+                charCount++;
+            }
+            
+            return {
+                total: totalSurprisal,
+                average: totalSurprisal / charCount,
+                perChar: charCount
+            };
+        }
+
+        // Calculate entropy of remaining unrevealed letters
+        function calculateRemainingEntropy(originalPhrase, revealed) {
+            let entropy = 0;
+            let unrevealedCount = 0;
+            
+            for (let i = 0; i < originalPhrase.length; i++) {
+                if (originalPhrase[i] !== ' ' && !revealed[i]) {
+                    const char = originalPhrase[i].toUpperCase();
+                    const prob = ENGLISH_FREQ[char] || 0.0001;
+                    entropy += -prob * Math.log2(prob);
+                    unrevealedCount++;
+                }
+            }
+            
+            return {
+                total: entropy,
+                average: unrevealedCount > 0 ? entropy / unrevealedCount : 0,
+                unrevealedCount: unrevealedCount
+            };
+        }
+
+        // Calculate full phrase entropy (Shannon entropy of the phrase's letter distribution)
+        function calculatePhraseEntropy(phrase) {
+            const freq = {};
+            let total = 0;
+            
+            for (const char of phrase) {
+                if (char !== ' ') {
+                    const upper = char.toUpperCase();
+                    freq[upper] = (freq[upper] || 0) + 1;
+                    total++;
+                }
+            }
+            
+            let entropy = 0;
+            for (const count of Object.values(freq)) {
+                const p = count / total;
+                entropy -= p * Math.log2(p);
+            }
+            
+            return entropy;
+        }
+
+        // Word/Phrase bank
+        const PHRASES = [
+            "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG",
+            "TO BE OR NOT TO BE THAT IS THE QUESTION",
+            "ALL THAT GLITTERS IS NOT GOLD",
+            "A JOURNEY OF A THOUSAND MILES BEGINS WITH A SINGLE STEP",
+            "THE ONLY THING WE HAVE TO FEAR IS FEAR ITSELF",
+            "I THINK THEREFORE I AM",
+            "ELEMENTARY MY DEAR WATSON",
+            "MAY THE FORCE BE WITH YOU",
+            "THERE IS NO PLACE LIKE HOME",
+            "YOU CANNOT HANDLE THE TRUTH",
+            "LIFE IS LIKE A BOX OF CHOCOLATES",
+            "HOPE IS A GOOD THING MAYBE THE BEST OF THINGS",
+            "WHY SO SERIOUS",
+            "JUST KEEP SWIMMING",
+            "WITH GREAT POWER COMES GREAT RESPONSIBILITY"
+        ];
+
+        // Game state
+        let originalPhrase = "";
+        let cipherMap = {};
+        let reverseCipherMap = {};
+        let encodedPhrase = "";
+        let revealed = {};
+        let wrongGuesses = 0;
+        let maxWrongGuesses = 6;
+        let usedLetters = new Set();
+        let gameOver = false;
+        let phraseSurprisal = 0;
+        let phraseEntropy = 0;
+
+        // DOM elements
+        const phraseRow = document.getElementById('phraseRow');
+        const canvas = document.getElementById('hangmanCanvas');
+        const ctx = canvas.getContext('2d');
+        const keyboardEl = document.getElementById('keyboard');
+        const livesDisplay = document.getElementById('livesDisplay');
+        const newGameBtn = document.getElementById('newGameBtn');
+        const hintBtn = document.getElementById('hintBtn');
+        const surprisalDisplay = document.getElementById('surprisalDisplay');
+        const entropyDisplay = document.getElementById('entropyDisplay');
+        const remainingEntropyDisplay = document.getElementById('remainingEntropyDisplay');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalNewGameBtn = document.getElementById('modalNewGameBtn');
+        const modalMenuBtn = document.getElementById('modalMenuBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModalOverlay = document.getElementById('settingsModalOverlay');
+        const showCipherToggle = document.getElementById('showCipherToggle');
+        const showActiveCiphersToggle = document.getElementById('showActiveCiphersToggle');
+        const showInfoPanelToggle = document.getElementById('showInfoPanelToggle');
+        const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+        const settingsMenuBtn = document.getElementById('settingsMenuBtn');
+        const alphabetToggleBtn = document.getElementById('alphabetToggleBtn');
+        const cipherListToggleBtn = document.getElementById('cipherListToggleBtn');
+        const testerToggleBtn = document.getElementById('testerToggleBtn');
+        const testerModalOverlay = document.getElementById('testerModalOverlay');
+        const testerCipherSelect = document.getElementById('testerCipherSelect');
+        const testerOffsetRow = document.getElementById('testerOffsetRow');
+        const testerOffset = document.getElementById('testerOffset');
+        const testerInput = document.getElementById('testerInput');
+        const testerOutput = document.getElementById('testerOutput');
+        const testerCloseBtn = document.getElementById('testerCloseBtn');
+        const alphabetPanel = document.getElementById('alphabetPanel');
+        const cipherListPanel = document.getElementById('cipherListPanel');
+        const alphabetGrid = document.getElementById('alphabetGrid');
+        const cipherList = document.getElementById('cipherList');
+
+        // Settings state
+        let showCipherType = false; // Default to hiding cipher type
+        let showActiveCiphers = false; // Default to hiding active ciphers
+        let showInfoPanel = true; // Default to showing info panel
+
+        // Cipher state
+        let currentCipher = null; // { type: 'caesar'|'rot13'|'a1z26'|'atbash', offset: number, name: string }
+
+        // Generate a random cipher (Caesar, ROT13, A1Z26, or Atbash)
+        function generateCipher() {
+            // Read selected ciphers from sessionStorage (set by menu.html)
+            let cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse'];
+            try {
+                const selected = sessionStorage.getItem('cipherHangmanSelectedCiphers');
+                if (selected) {
+                    const parsed = JSON.parse(selected);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        cipherTypes = parsed;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to read cipher preferences, using all');
+            }
+            
+            // Safety fallback - ensure we always have at least one cipher type
+            if (!cipherTypes.length) {
+                cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse'];
+            }
+            
+            // Update active ciphers display
+            const activeDisplay = document.getElementById('activeCiphersDisplay');
+            if (activeDisplay) {
+                activeDisplay.textContent = cipherTypes.join(', ');
+            }
+            
+            console.log('generateCipher - cipherTypes:', cipherTypes);
+            const type = cipherTypes[Math.floor(Math.random() * cipherTypes.length)];
+            console.log('generateCipher - selected type:', type);
+            
+            if (type === 'a1z26') {
+                currentCipher = {
+                    type: 'a1z26',
+                    offset: 0,
+                    name: 'A1Z26'
+                };
+            } else if (type === 'atbash') {
+                currentCipher = {
+                    type: 'atbash',
+                    offset: 0,
+                    name: 'Atbash'
+                };
+            } else if (type === 'rot13') {
+                currentCipher = {
+                    type: 'rot13',
+                    offset: 13,
+                    name: 'ROT13'
+                };
+            } else if (type === 'binary') {
+                currentCipher = {
+                    type: 'binary',
+                    offset: 0,
+                    name: 'Binary'
+                };
+            } else if (type === 'morse') {
+                currentCipher = {
+                    type: 'morse',
+                    offset: 0,
+                    name: 'Morse Code'
+                };
+            } else {
+                // Caesar with random offset
+                let offset = Math.floor(Math.random() * 52) - 26; // -26 to 25
+                if (offset === 0) offset = 1; // Ensure non-zero
+                if (offset > 26) offset -= 26; // Cap at ±26
+                if (offset < -26) offset += 26;
+                
+                currentCipher = {
+                    type: 'caesar',
+                    offset: offset,
+                    name: `Caesar (${offset > 0 ? '+' : ''}${offset})`
+                };
+            }
+            
+            // Build cipher map
+            cipherMap = {};
+            reverseCipherMap = {};
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            
+            if (currentCipher.type === 'a1z26') {
+                // A=1, B=2, ..., Z=26
+                alphabet.forEach((letter, i) => {
+                    const encoded = String(i + 1);
+                    cipherMap[letter] = encoded;
+                    reverseCipherMap[encoded] = letter;
+                });
+            } else if (currentCipher.type === 'binary') {
+                // Binary: A=00001, B=00010, ..., Z=11010 (5-bit binary)
+                alphabet.forEach((letter, i) => {
+                    const encoded = (i + 1).toString(2).padStart(5, '0');
+                    cipherMap[letter] = encoded;
+                    reverseCipherMap[encoded] = letter;
+                });
+            } else if (currentCipher.type === 'morse') {
+                // Morse code: A=.-, B=-..., etc.
+                const morseMap = {
+                    'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
+                    'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+                    'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
+                    'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+                    'Y': '-.--', 'Z': '--..'
+                };
+                alphabet.forEach(letter => {
+                    const encoded = morseMap[letter];
+                    cipherMap[letter] = encoded;
+                    reverseCipherMap[encoded] = letter;
+                });
+            } else if (currentCipher.type === 'atbash') {
+                // Atbash: A↔Z, B↔Y, C↔X, etc. (reverse alphabet)
+                const reversed = [...alphabet].reverse();
+                alphabet.forEach((letter, i) => {
+                    const encoded = reversed[i];
+                    cipherMap[letter] = encoded;
+                    reverseCipherMap[encoded] = letter;
+                });
+            } else {
+                // Caesar/ROT13
+                alphabet.forEach((letter, i) => {
+                    const shiftedIndex = (i + currentCipher.offset + 26) % 26;
+                    const encoded = alphabet[shiftedIndex];
+                    cipherMap[letter] = encoded;
+                    reverseCipherMap[encoded] = letter;
+                });
+            }
+        }
+
+        // Encode phrase using cipher
+        function encodePhrase(phrase) {
+            if (currentCipher.type === 'a1z26') {
+                // A1Z26: space-separated numbers (e.g., "8 5 12 12 15")
+                // Don't add tokens for spaces - they'll be handled by word separation in renderPhrase
+                return phrase.split('').map(char => {
+                    if (char === ' ') return ''; // Skip spaces entirely
+                    return cipherMap[char] || char;
+                }).filter(t => t !== '').join(' ');
+            } else if (currentCipher.type === 'binary') {
+                // Binary: space-separated 5-bit binary (e.g., "00001 00010 00011")
+                return phrase.split('').map(char => {
+                    if (char === ' ') return ''; // Skip spaces entirely
+                    return cipherMap[char] || char;
+                }).filter(t => t !== '').join(' ');
+            } else if (currentCipher.type === 'morse') {
+                // Morse: space-separated morse codes (e.g., ".... . .-.. .-.. ---")
+                return phrase.split('').map(char => {
+                    if (char === ' ') return ''; // Skip spaces entirely
+                    return cipherMap[char] || char;
+                }).filter(t => t !== '').join(' ');
+            } else if (currentCipher.type === 'atbash') {
+                // Atbash: letter substitution (A↔Z, B↔Y, etc.) - no spaces between letters
+                return phrase.split('').map(char => {
+                    if (char === ' ') return ' ';
+                    return cipherMap[char] || char;
+                }).join('');
+            } else {
+                // Caesar/ROT13: letter substitution
+                return phrase.split('').map(char => {
+                    if (char === ' ') return ' ';
+                    return cipherMap[char] || char;
+                }).join('');
+            }
+        }
+
+        // Get cipher display name
+        function getCipherDisplay() {
+            return currentCipher ? currentCipher.name : '';
+        }
+
+        // Initialize alphabet reference grid
+        function initAlphabetGrid() {
+            alphabetGrid.innerHTML = '';
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            
+            alphabet.forEach((letter, index) => {
+                const item = document.createElement('div');
+                item.className = 'alphabet-item';
+                item.innerHTML = `
+                    <span class="letter">${letter}</span>
+                    <span class="position">${index + 1}</span>
+                `;
+                alphabetGrid.appendChild(item);
+            });
+        }
+
+        // Toggle alphabet panel
+        function toggleAlphabetPanel() {
+            alphabetPanel.classList.toggle('open');
+            alphabetToggleBtn.classList.toggle('active', alphabetPanel.classList.contains('open'));
+            // Close other panel
+            cipherListPanel.classList.remove('open');
+            cipherListToggleBtn.classList.remove('active');
+        }
+
+        // Toggle cipher list panel
+        function toggleCipherListPanel() {
+            cipherListPanel.classList.toggle('open');
+            cipherListToggleBtn.classList.toggle('active', cipherListPanel.classList.contains('open'));
+            // Close other panel
+            alphabetPanel.classList.remove('open');
+            alphabetToggleBtn.classList.remove('active');
+        }
+
+        // Update cipher list highlight
+        function updateCipherDisplay() {
+            if (cipherList) {
+                cipherList.querySelectorAll('li').forEach(li => {
+                    // Only highlight if showCipherType is enabled
+                    li.classList.toggle('current', showCipherType && li.dataset.cipher === currentCipher.type);
+                });
+            }
+        }
+
+        // Create character boxes for display - grouped by word to prevent mid-word wrapping
+        function renderPhrase() {
+            // Toggle A1Z26 mode styling
+            phraseRow.classList.toggle('wide-mode', currentCipher.type === 'a1z26' || currentCipher.type === 'binary' || currentCipher.type === 'morse');
+            
+            phraseRow.innerHTML = '';
+            
+            // For A1Z26, binary, morse: encoded phrase is space-separated tokens; for others, it's a continuous string
+            // Filter out empty tokens (caused by double-spaces at word boundaries)
+            const isSpaceSeparated = currentCipher.type === 'a1z26' || currentCipher.type === 'binary' || currentCipher.type === 'morse';
+            const encodedTokens = isSpaceSeparated
+                ? encodedPhrase.trim().split(' ').filter(t => t !== '')
+                : encodedPhrase.split('');
+            
+            // Split into words and track character indices
+            const words = originalPhrase.split(' ');
+            let charIndex = 0;      // Index in encodedTokens
+            let originalIndex = 0;  // Index in originalPhrase
+            
+            words.forEach((word, wordIdx) => {
+                // Create word group container
+                const wordGroup = document.createElement('div');
+                wordGroup.className = 'word-group';
+                
+                // Process each character in the word
+                for (let i = 0; i < word.length; i++) {
+                    const box = document.createElement('div');
+                    box.className = 'char-box';
+                    box.dataset.index = originalIndex;
+                    
+                    const encodedChar = encodedTokens[charIndex] || '';
+                    box.innerHTML = `
+                        <span class="encoded">${encodedChar}</span>
+                        <span class="decoded">${word[i]}</span>
+                    `;
+                    
+                    if (revealed[originalIndex]) {
+                        box.classList.add('revealed');
+                    }
+                    
+                    wordGroup.appendChild(box);
+                    charIndex++;
+                    originalIndex++;
+                }
+                
+                phraseRow.appendChild(wordGroup);
+                
+                // Add space between words (except last)
+                if (wordIdx < words.length - 1) {
+                    const spaceBox = document.createElement('div');
+                    spaceBox.className = 'char-box space';
+                    phraseRow.appendChild(spaceBox);
+                    
+                    // Skip space in encodedTokens for space-separated ciphers
+                    if (isSpaceSeparated) {
+                        // No space token in encodedTokens for these ciphers
+                    } else {
+                        charIndex++; // Skip space token in encodedTokens
+                    }
+                    originalIndex++; // Skip space in originalPhrase
+                }
+            });
+        }
+
+        // Render cipher key
+        function renderCipherKey() {
+            // Cipher key display removed
+        }
+
+        // Draw hangman
+        function drawHangman() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            
+            // Base
+            ctx.beginPath();
+            ctx.moveTo(30, 320);
+            ctx.lineTo(270, 320);
+            ctx.stroke();
+            
+            // Post
+            ctx.beginPath();
+            ctx.moveTo(80, 320);
+            ctx.lineTo(80, 30);
+            ctx.stroke();
+            
+            // Beam
+            ctx.beginPath();
+            ctx.moveTo(80, 30);
+            ctx.lineTo(180, 30);
+            ctx.stroke();
+            
+            // Rope
+            ctx.beginPath();
+            ctx.moveTo(180, 30);
+            ctx.lineTo(180, 60);
+            ctx.stroke();
+            
+            if (wrongGuesses >= 1) {
+                // Head
+                ctx.beginPath();
+                ctx.arc(180, 85, 25, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            if (wrongGuesses >= 2) {
+                // Body
+                ctx.beginPath();
+                ctx.moveTo(180, 110);
+                ctx.lineTo(180, 200);
+                ctx.stroke();
+            }
+            
+            if (wrongGuesses >= 3) {
+                // Left arm
+                ctx.beginPath();
+                ctx.moveTo(180, 130);
+                ctx.lineTo(140, 170);
+                ctx.stroke();
+            }
+            
+            if (wrongGuesses >= 4) {
+                // Right arm
+                ctx.beginPath();
+                ctx.moveTo(180, 130);
+                ctx.lineTo(220, 170);
+                ctx.stroke();
+            }
+            
+            if (wrongGuesses >= 5) {
+                // Left leg
+                ctx.beginPath();
+                ctx.moveTo(180, 200);
+                ctx.lineTo(140, 260);
+                ctx.stroke();
+            }
+            
+            if (wrongGuesses >= 6) {
+                // Right leg
+                ctx.beginPath();
+                ctx.moveTo(180, 200);
+                ctx.lineTo(220, 260);
+                ctx.stroke();
+                
+                // Dead eyes
+                ctx.beginPath();
+                ctx.moveTo(170, 78);
+                ctx.lineTo(180, 88);
+                ctx.moveTo(180, 78);
+                ctx.lineTo(170, 88);
+                ctx.moveTo(190, 78);
+                ctx.lineTo(200, 88);
+                ctx.moveTo(200, 78);
+                ctx.lineTo(190, 88);
+                ctx.stroke();
+            }
+        }
+
+        // Create keyboard
+        function renderKeyboard() {
+            keyboardEl.innerHTML = '';
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            
+            alphabet.forEach(letter => {
+                const btn = document.createElement('button');
+                btn.className = 'key';
+                btn.textContent = letter;
+                btn.dataset.letter = letter;
+                
+                if (usedLetters.has(letter)) {
+                    btn.disabled = true;
+                    if (originalPhrase.includes(letter)) {
+                        btn.classList.add('used-correct');
+                    } else {
+                        btn.classList.add('used-wrong');
+                    }
+                }
+                
+                btn.addEventListener('click', () => handleGuess(letter));
+                keyboardEl.appendChild(btn);
+            });
+        }
+
+        // Handle letter guess
+        function handleGuess(letter) {
+            if (gameOver || usedLetters.has(letter)) return;
+            
+            usedLetters.add(letter);
+            
+            // Find all positions of this letter in original phrase
+            const positions = [];
+            for (let i = 0; i < originalPhrase.length; i++) {
+                if (originalPhrase[i] === letter) {
+                    positions.push(i);
+                }
+            }
+            
+            if (positions.length > 0) {
+                // Correct guess
+                positions.forEach(pos => {
+                    revealed[pos] = true;
+                });
+                
+                // Re-render phrase to show cipher labels for fully revealed words
+                renderPhrase();
+                
+                // Update remaining entropy
+                updateRemainingEntropy();
+                
+                checkWin();
+            } else {
+                // Wrong guess
+                wrongGuesses++;
+                drawHangman();
+                livesDisplay.textContent = maxWrongGuesses - wrongGuesses;
+                
+                // Animate wrong - shake all boxes briefly
+                document.querySelectorAll('.char-box:not(.space)').forEach(box => {
+                    box.classList.add('wrong-guess');
+                    setTimeout(() => box.classList.remove('wrong-guess'), 400);
+                });
+                
+                checkLose();
+            }
+            
+            renderKeyboard();
+        }
+
+        // Check win condition
+        function checkWin() {
+            const allRevealed = originalPhrase.split('').every((char, i) => {
+                if (char === ' ') return true;
+                return revealed[i] === true;
+            });
+            
+            if (allRevealed) {
+                gameOver = true;
+                showModal('WIN!', 'You decoded the phrase!', 'win', `Cipher: ${getCipherDisplay()}`);
+                disableAllKeys();
+            }
+        }
+
+        // Check lose condition
+        function checkLose() {
+            if (wrongGuesses >= maxWrongGuesses) {
+                gameOver = true;
+                // Reveal all letters
+                originalPhrase.split('').forEach((char, i) => {
+                    if (char !== ' ') revealed[i] = true;
+                });
+                renderPhrase();
+                updateRemainingEntropy();
+                showModal('GAME OVER', `The phrase was: "${originalPhrase}"`, 'lose', `Cipher: ${getCipherDisplay()}`);
+                disableAllKeys();
+            }
+        }
+
+        // Show modal
+        function showModal(title, message, type, cipherInfo) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            const cipherInfoEl = document.getElementById('modalCipherInfo');
+            if (cipherInfoEl) {
+                cipherInfoEl.textContent = cipherInfo;
+            }
+            modalOverlay.className = 'modal-overlay show';
+            document.querySelector('#gameModal').className = 'modal ' + type;
+        }
+
+        // Hide modal
+        function hideModal() {
+            modalOverlay.className = 'modal-overlay';
+        }
+
+        // Disable all keyboard keys
+        function disableAllKeys() {
+            document.querySelectorAll('.key').forEach(btn => {
+                btn.disabled = true;
+            });
+        }
+
+        // Hint button - reveal a random unrevealed letter
+        function giveHint() {
+            if (gameOver) return;
+            
+            const unrevealedLetters = [];
+            for (let i = 0; i < originalPhrase.length; i++) {
+                const char = originalPhrase[i];
+                if (char !== ' ' && !revealed[i] && !unrevealedLetters.includes(char)) {
+                    unrevealedLetters.push(char);
+                }
+            }
+            
+            if (unrevealedLetters.length === 0) return;
+            
+            const hintLetter = unrevealedLetters[Math.floor(Math.random() * unrevealedLetters.length)];
+            
+            // Apply penalty
+            wrongGuesses++;
+            drawHangman();
+            livesDisplay.textContent = maxWrongGuesses - wrongGuesses;
+            
+            // Reveal the hint letter
+            handleGuess(hintLetter);
+            
+            checkLose();
+            
+            // Update entropy after hint
+            updateRemainingEntropy();
+        }
+
+        // Initialize new game
+        function newGame() {
+            // Reset state
+            originalPhrase = PHRASES[Math.floor(Math.random() * PHRASES.length)];
+            generateCipher();
+            encodedPhrase = encodePhrase(originalPhrase);
+            revealed = {};
+            wrongGuesses = 0;
+            usedLetters = new Set();
+            gameOver = false;
+            
+            // Calculate information theory metrics
+            const surprisalResult = calculateSurprisal(originalPhrase);
+            phraseSurprisal = surprisalResult.total;
+            phraseEntropy = calculatePhraseEntropy(originalPhrase);
+            
+            // Update UI
+            livesDisplay.textContent = maxWrongGuesses;
+            surprisalDisplay.textContent = phraseSurprisal.toFixed(2) + ' bits';
+            entropyDisplay.textContent = phraseEntropy.toFixed(2) + ' bits';
+            updateRemainingEntropy();
+            
+            updateActiveCiphersDisplay();
+            
+            // Toggle A1Z26 mode styling
+            phraseRow.classList.toggle('wide-mode', currentCipher.type === 'a1z26' || currentCipher.type === 'binary' || currentCipher.type === 'morse');
+            
+            // Update cipher display in settings and list
+            updateCipherDisplay();
+            
+            // Close any open panels
+            alphabetPanel.classList.remove('open');
+            cipherListPanel.classList.remove('open');
+            alphabetToggleBtn.classList.remove('active');
+            cipherListToggleBtn.classList.remove('active');
+            
+            hideModal();
+            drawHangman();
+            renderPhrase();
+            renderKeyboard();
+        }
+
+        // Update remaining entropy display
+        function updateRemainingEntropy() {
+            const remaining = calculateRemainingEntropy(originalPhrase, revealed);
+            remainingEntropyDisplay.textContent = remaining.total.toFixed(2) + ' bits';
+            
+            // Color code based on remaining entropy
+            remainingEntropyDisplay.className = 'info-value';
+            if (remaining.unrevealedCount === 0) {
+                remainingEntropyDisplay.classList.add('danger');
+            } else if (remaining.total < 5) {
+                remainingEntropyDisplay.classList.add('warning');
+            }
+        }
+
+        // Event listeners
+        newGameBtn.addEventListener('click', newGame);
+        hintBtn.addEventListener('click', giveHint);
+        modalNewGameBtn.addEventListener('click', () => {
+            hideModal();
+            newGame();
+        });
+        modalMenuBtn.addEventListener('click', () => {
+            hideModal();
+            window.location.href = 'menu.html';
+        });
+        alphabetToggleBtn.addEventListener('click', toggleAlphabetPanel);
+        cipherListToggleBtn.addEventListener('click', toggleCipherListPanel);
+        settingsBtn.addEventListener('click', () => {
+            settingsModalOverlay.className = 'modal-overlay show';
+        });
+        settingsCloseBtn.addEventListener('click', () => {
+            settingsModalOverlay.className = 'modal-overlay';
+        });
+        settingsMenuBtn.addEventListener('click', () => {
+            settingsModalOverlay.className = 'modal-overlay';
+            window.location.href = 'menu.html';
+        });
+        showCipherToggle.addEventListener('change', (e) => {
+            showCipherType = e.target.checked;
+            updateCipherDisplay();
+        });
+        showActiveCiphersToggle.addEventListener('change', (e) => {
+            showActiveCiphers = e.target.checked;
+            updateActiveCiphersDisplay();
+        });
+        showInfoPanelToggle.addEventListener('change', (e) => {
+            showInfoPanel = e.target.checked;
+            updateInfoPanelDisplay();
+        });
+
+        // Close settings modal when clicking overlay
+        settingsModalOverlay.addEventListener('click', (e) => {
+            if (e.target === settingsModalOverlay) {
+                settingsModalOverlay.className = 'modal-overlay';
+            }
+        });
+        
+        // Settings display update functions
+        function updateActiveCiphersDisplay() {
+            const activeDisplay = document.getElementById('activeCiphersDisplay');
+            const activeRow = document.getElementById('activeCiphersRow');
+            if (activeDisplay && activeRow) {
+                if (showActiveCiphers && currentCipher) {
+                    activeDisplay.textContent = currentCipher.name;
+                    activeDisplay.style.display = 'inline';
+                    activeRow.style.display = 'flex';
+                } else {
+                    activeDisplay.textContent = '—';
+                    activeDisplay.style.display = 'none';
+                    activeRow.style.display = 'none';
+                }
+            }
+        }
+        
+        function updateInfoPanelDisplay() {
+            const infoPanel = document.getElementById('infoPanel');
+            if (infoPanel) {
+                infoPanel.style.display = showInfoPanel ? 'block' : 'none';
+            }
+            // Update values if visible
+            if (showInfoPanel) {
+                surprisalDisplay.textContent = phraseSurprisal.toFixed(2) + ' bits';
+                entropyDisplay.textContent = phraseEntropy.toFixed(2) + ' bits';
+                updateRemainingEntropy();
+            }
+        }
+        
+        // Tester functions
+        function updateTesterOffsetVisibility() {
+            testerOffsetRow.style.display = testerCipherSelect.value === 'caesar' ? 'flex' : 'none';
+        }
+
+        function applyTesterCipher() {
+            const cipher = testerCipherSelect.value;
+            const offset = parseInt(testerOffset.value) || 0;
+            const input = testerInput.value;
+            
+            if (!input) {
+                testerOutput.value = '';
+                return;
+            }
+            
+            let result = '';
+            
+            // Build cipher map for the selected cipher
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            let cipherMap = {};
+            
+            if (cipher === 'caesar') {
+                const normalizedOffset = ((offset % 26) + 26) % 26;
+                alphabet.forEach((letter, i) => {
+                    const shiftedIndex = (i + normalizedOffset) % 26;
+                    cipherMap[letter] = alphabet[shiftedIndex];
+                });
+            } else if (cipher === 'rot13') {
+                alphabet.forEach((letter, i) => {
+                    const shiftedIndex = (i + 13) % 26;
+                    cipherMap[letter] = alphabet[shiftedIndex];
+                });
+            } else if (cipher === 'atbash') {
+                const reversed = [...alphabet].reverse();
+                alphabet.forEach((letter, i) => {
+                    cipherMap[letter] = reversed[i];
+                });
+            } else if (cipher === 'a1z26') {
+                alphabet.forEach((letter, i) => {
+                    cipherMap[letter] = String(i + 1);
+                });
+            } else if (cipher === 'binary') {
+                alphabet.forEach((letter, i) => {
+                    cipherMap[letter] = (i + 1).toString(2).padStart(5, '0');
+                });
+            } else if (cipher === 'morse') {
+                const morseMap = {
+                    'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
+                    'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+                    'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
+                    'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+                    'Y': '-.--', 'Z': '--..'
+                };
+                alphabet.forEach(letter => {
+                    cipherMap[letter] = morseMap[letter];
+                });
+            }
+            
+            // Apply cipher to input
+            if (cipher === 'a1z26' || cipher === 'binary' || cipher === 'morse') {
+                result = input.split('').map(char => {
+                    const upper = char.toUpperCase();
+                    if (cipherMap[upper]) return cipherMap[upper];
+                    if (char === ' ') return ' ';
+                    return char;
+                }).join(' ');
+            } else {
+                result = input.split('').map(char => {
+                    const upper = char.toUpperCase();
+                    if (cipherMap[upper]) {
+                        // Preserve case
+                        return char === char.toUpperCase() ? cipherMap[upper] : cipherMap[upper].toLowerCase();
+                    }
+                    return char;
+                }).join('');
+            }
+            
+            testerOutput.value = result;
+        }
+
+        function openTesterModal() {
+            testerModalOverlay.className = 'modal-overlay show';
+            applyTesterCipher();
+        }
+
+        function closeTesterModal() {
+            testerModalOverlay.className = 'modal-overlay';
+        }
+
+        // Tester event listeners
+        testerToggleBtn.addEventListener('click', openTesterModal);
+        testerCloseBtn.addEventListener('click', closeTesterModal);
+        testerCipherSelect.addEventListener('change', () => {
+            updateTesterOffsetVisibility();
+            applyTesterCipher();
+        });
+        testerOffset.addEventListener('input', applyTesterCipher);
+        testerInput.addEventListener('input', applyTesterCipher);
+
+        // Close tester modal when clicking overlay
+        testerModalOverlay.addEventListener('click', (e) => {
+            if (e.target === testerModalOverlay) {
+                closeTesterModal();
+            }
+        });
+
+        // Initialize alphabet grid
+        initAlphabetGrid();
+
+        // Helper to check if any modal is open
+        function isAnyModalOpen() {
+            return (
+                modalOverlay.classList.contains('show') ||
+                settingsModalOverlay.classList.contains('show') ||
+                testerModalOverlay.classList.contains('show')
+            );
+        }
+
+        // Keyboard input support
+        document.addEventListener('keydown', (e) => {
+            if (gameOver || isAnyModalOpen()) return;
+            // Ignore keystrokes if user is typing in an input/textarea
+            const active = document.activeElement;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
+            const letter = e.key.toUpperCase();
+            if (/^[A-Z]$/.test(letter)) {
+                handleGuess(letter);
+            }
+        });
+
+        // Start first game
+        newGame();
+    </script>
+</body>
+</html>

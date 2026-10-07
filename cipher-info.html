@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipher Reference - Cipher Hangman</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: #ffffff;
+            color: #1a1a1a;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.7;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.15s;
+        }
+
+        .back-link:hover {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .cipher-card {
+            background: #fafafa;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .cipher-card h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+            border-bottom: 2px solid #2e7d32;
+            padding-bottom: 12px;
+            display: inline-block;
+        }
+
+        .cipher-card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 24px 0 12px;
+        }
+
+        .cipher-card p {
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .cipher-card .example {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 12px 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+
+        .cipher-card .example .label {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .cipher-card .example .text {
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .cipher-card .sources {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .cipher-card .sources h3 {
+            margin-top: 0;
+        }
+
+        .cipher-card .sources ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .cipher-card .sources li {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .cipher-card .sources a {
+            color: #2e7d32;
+            text-decoration: none;
+        }
+
+        .cipher-card .sources a:hover {
+            text-decoration: underline;
+        }
+
+        .fun-fact {
+            background: #fff8e1;
+            border-left: 4px solid #ffb300;
+            padding: 16px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .fun-fact .label {
+            font-weight: 700;
+            color: #b8860b;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 0 10px;
+            }
+            .cipher-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CIPHER REFERENCE</h1>
+            <p class="subtitle">How each cipher works, with history and fun facts</p>
+        </header>
+
+        <a href="cipher-hangman.html" class="back-link">← Back to Game</a>
+
+        <!-- Caesar Cipher -->
+        <article class="cipher-card" id="caesar">
+            <h2>Caesar Cipher</h2>
+            
+            <h3>How It Works</h3>
+            <p>The Caesar cipher is a substitution cipher where each letter is shifted a fixed number of positions down the alphabet. With a shift of <code>+3</code>, A becomes D, B becomes E, ..., Z wraps around to C.</p>
+            
+            <div class="example">
+                <div class="label">Example (shift +3)</div>
+                <div class="text">Plain:  THE QUICK BROWN FOX<br>Cipher: WKH TXLFN EURZQ IRA</div>
+            </div>
+
+            <h3>Decryption</h3>
+            <p>Shift backwards by the same amount. If you know the shift, decryption is trivial. If not, try all 25 possibilities (brute force) or use frequency analysis.</p>
+
+            <div class="fun-fact">
+                <div class="label">Fun Fact</div>
+                <p>Julius Caesar used this cipher with a shift of +3 for military communications. It wasn't "secure" by modern standards—most of his enemies were illiterate—but it prevented casual snooping.</p>
+            </div>
+
+            <div class="sources">
+                <h3>Sources</h3>
+                <ul>
+                    <li>Suetonius, <em>Life of Julius Caesar</em> 56 – "He wrote to Cicero... substituting the order of the letters of the alphabet."</li>
+                    <li>Singh, Simon. <em>The Code Book</em>. Anchor Books, 1999. Ch. 1.</li>
+                    <li>Kahn, David. <em>The Codebreakers</em>. Scribner, 1996.</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- ROT13 -->
+        <article class="cipher-card" id="rot13">
+            <h2>ROT13</h2>
+            
+            <h3>How It Works</h3>
+            <p>ROT13 ("rotate by 13") is a special case of the Caesar cipher with a fixed shift of 13. Since the alphabet has 26 letters, applying ROT13 twice returns the original text—encryption and decryption are identical operations.</p>
+            
+            <div class="example">
+                <div class="label">Example</div>
+                <div class="text">Plain:  WHY DID THE CHICKEN CROSS THE ROAD<br>Cipher: JUL QVG GUR PVPXRAP PEBFF GUR EBNQ</div>
+            </div>
+
+            <h3>Properties</h3>
+            <p>Self-inverse: ROT13(ROT13(text)) = text. No key needed—always shift 13. Not secure; trivially reversible.</p>
+
+            <div class="fun-fact">
+                <div class="label">Fun Fact</div>
+                <p>ROT13 became popular on Usenet in the 1980s to hide spoilers, punchlines, and offensive content—not for secrecy, but so readers had to deliberately choose to decode it. It's still used in geocaching hints and some programming puzzles today.</p>
+            </div>
+
+            <div class="sources">
+                <h3>Sources</h3>
+                <ul>
+                    <li>RFC 1321 – "The ROT13 Algorithm" (informal, April 1992).</li>
+                    <li>Raymond, Eric S. <em>The New Hacker's Dictionary</em>. MIT Press, 1996.</li>
+                    <li>Usenet archives: rec.humor, alt.folklore.computers.</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- Atbash -->
+        <article class="cipher-card" id="atbash">
+            <h2>Atbash Cipher</h2>
+            
+            <h3>How It Works</h3>
+            <p>Atbash reverses the alphabet: A↔Z, B↔Y, C↔X, ..., M↔N. It's a fixed substitution with no key—like ROT13, encryption and decryption are identical.</p>
+            
+            <div class="example">
+                <div class="label">Example</div>
+                <div class="text">Plain:  ATBASH CIPHER<br>Cipher: ZGYZHS XRKSVI</div>
+            </div>
+
+            <h3>History</h3>
+            <p>One of the earliest known ciphers, used in the Hebrew Bible. The name comes from the first, last, second, and second-to-last letters of the Hebrew alphabet: <em>Aleph</em> (א) ↔ <em>Tav</em> (ת), <em>Bet</em> (ב) ↔ <em>Shin</em> (ש).</p>
+
+            <div class="fun-fact">
+                <div class="label">Fun Fact</div>
+                <p>Atbash appears in the Book of Jeremiah (25:26, 51:41) where "Sheshach" (ששך) decodes to "Babylon" (בבל) and "Leb Kamai" decodes to "Chaldeans." It's one of the few ciphers explicitly documented in ancient religious texts.</p>
+            </div>
+
+            <div class="sources">
+                <h3>Sources</h3>
+                <ul>
+                    <li>Jeremiah 25:26, 51:41 (Hebrew Bible).</li>
+                    <li>Gematria/Atbash in Jewish hermeneutics – <em>Encyclopaedia Judaica</em>.</li>
+                    <li>Kahn, David. <em>The Codebreakers</em>. Scribner, 1996. Ch. 2.</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- A1Z26 -->
+        <article class="cipher-card" id="a1z26">
+            <h2>A1Z26 Cipher</h2>
+            
+            <h3>How It Works</h3>
+            <p>Each letter is replaced by its position in the alphabet: A=1, B=2, C=3, ..., Z=26. Numbers are typically space-separated. Not a substitution cipher in the traditional sense—it's an encoding.</p>
+            
+            <div class="example">
+                <div class="label">Example</div>
+                <div class="text">Plain:  HELLO WORLD<br>Cipher: 8 5 12 12 15  23 15 18 12 4</div>
+            </div>
+
+            <h3>Properties</h3>
+            <p>No key, trivially reversible. Preserves word boundaries (spaces). Vulnerable to frequency analysis on numbers. Often combined with other ciphers for puzzles.</p>
+
+            <div class="fun-fact">
+                <div class="label">Fun Fact</div>
+                <p>A1Z26 is the basis for many "number station" broadcasts during the Cold War—spies would receive number sequences decoded via one-time pads. It's also used in geocaching, puzzle hunts, and the "Captain Midnight" decoder badges from 1940s radio shows.</p>
+            </div>
+
+            <div class="sources">
+                <h3>Sources</h3>
+                <ul>
+                    <li>Barker, Wayne G. <em>Cryptanalysis of Number Systems</em>. Aegean Park Press, 1982.</li>
+                    <li>Kahn, David. <em>The Codebreakers</em>. Scribner, 1996. (Discussion of figure ciphers).</li>
+                    <li>Various puzzle hunt archives (MIT Mystery Hunt, Puzzled Pint).</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- Binary -->
+        <article class="cipher-card" id="binary">
+            <h2>Binary Cipher</h2>
+            
+            <h3>How It Works</h3>
+            <p>Each letter is converted to its 5-bit binary representation based on its position in the alphabet: A=1 (00001), B=2 (00010), ..., Z=26 (11010). Binary groups are typically space-separated.</p>
+            
+            <div class="example">
+                <div class="label">Example</div>
+                <div class="text">Plain:  HELLO WORLD<br>Cipher: 01000 00101 01100 01100 01111  10111 01111 10010 01100 00100</div>
+            </div>
+
+            <h3>Properties</h3>
+            <p>Fixed-width encoding (5 bits per letter). No key required. Preserves word boundaries. Can be transmitted as on/off signals (Morse, digital). Vulnerable to frequency analysis.</p>
+
+            <div class="fun-fact">
+                <div class="label">Fun Fact</div>
+                <p>5-bit binary encoding (Baudot code) was used in early telegraph systems and teleprinters. The 5-bit limit allows 32 codes (26 letters + space + punctuation + control codes). Modern ASCII uses 7 or 8 bits for more characters.</p>
+            </div>
+
+            <div class="sources">
+                <h3>Sources</h3>
+                <ul>
+                    <li>Baudot, Émile. "Telegraphic Apparatus." French Patent 171,675 (1874).</li>
+                    <li>Garner, Robert. "The Baudot Code and Early Telegraphy." <em>IEEE Annals of the History of Computing</em> 12.1 (1990): 32–41.</li>
+                    <li>Kahn, David. <em>The Codebreakers</em>. Scribner, 1996. Ch. 5 (Teleprinter ciphers).</li>
+                </ul>
+            </div>
+        </article>
+
+        <!-- Morse Code -->
+        <article class="cipher-card" id="morse">
+            <h2>Morse Code</h2>
+            
+            <h3>How It Works</h3>
+            <p>Morse code encodes letters as sequences of dots (.) and dashes (-). The most frequent letters get the shortest codes: E = ., T = -. Letters are separated by spaces, words by / or double spaces.</p>
+            
+            <div class="example">
+                <div class="label">Example</div>
+                <div class="text">Plain:  HELLO WORLD<br>Cipher: .... . .-.. .-.. ---  /  .-- --- .-. .-.. -..</div>
+            </div>
+
+            <h3>Properties</h3>
+            <p>Variable-length encoding optimized for letter frequency. No key required. Can be transmitted as sound, light, or electrical pulses. Originally designed for telegraph lines.</p>
+
+            <div class="fun-fact">
+                <div class="label">Fun Fact</div>
+                <p>The SOS distress signal (... --- ...) was chosen because it's unmistakable and easy to transmit, not because it stands for "Save Our Souls." It was adopted as the international distress signal in 1908.</p>
+            </div>
+
+            <div class="sources">
+                <h3>Sources</h3>
+                <ul>
+                    <li>Morse, Samuel F. B. "Improvement in the Mode of Communicating Information by Signals." U.S. Patent 1,647 (1840).</li>
+                    <li>Hurowitz, Richard. <em>The Telegraph: A History of Morse's Invention and Its Predecessors in the United States</em>. McFarland, 2012.</li>
+                    <li>International Telecommunication Union. "Morse Code." ITU-R M.1677-1 (2009).</li>
+                </ul>
+            </div>
+        </article>
+
+        <footer style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e0e0e0; color: #888; font-size: 13px;">
+            <p>Cipher Hangman — LNG302 Project</p>
+            <p>Mana Ganesh Kawamura, 2026</p>
+            <p><a href="cipher-hangman.html" style="color: #2e7d32;">Return to game</a></p>
+        </footer>
+    </div>
+</body>
+</html>
