@@ -695,6 +695,7 @@
             <aside class="side-panel" id="cipherListPanel">
                 <div class="panel-content" id="cipherListContent">
                     <h3>Cipher Types</h3>
+                    <h3>Click cipher names for more info</h3>
                     <ul class="cipher-list" id="cipherList">
                         <li data-cipher="caesar"><a href="cipher-info.html#caesar">Caesar (shift ±1–26)</a></li>
                         <li data-cipher="rot13"><a href="cipher-info.html#rot13">ROT13 (shift 13)</a></li>
@@ -768,7 +769,7 @@
         <div class="modal settings-modal" id="settingsModal">
             <h2>Settings</h2>
             <div class="setting-row">
-                <label class="toggle-label">
+                <label class="toggle-label" title="Cipher indicated in cipher tab (🔐)">
                     <span class="toggle-text">Show Cipher Type</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="showCipherToggle">
@@ -777,7 +778,7 @@
                 </label>
             </div>
             <div class="setting-row">
-                <label class="toggle-label">
+                <label class="toggle-label" title="Displayed beneath surprisal and entropy">
                     <span class="toggle-text">Show Active Ciphers</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="showActiveCiphersToggle">
@@ -786,7 +787,7 @@
                 </label>
             </div>
             <div class="setting-row">
-                <label class="toggle-label">
+                <label class="toggle-label" title="Shows surprisal and entropy of original text">
                     <span class="toggle-text">Show Info Panel</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="showInfoPanelToggle" checked>
