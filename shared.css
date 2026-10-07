@@ -30,7 +30,9 @@ h1 {
 }
 
 .subtitle {
+    text-align: center;
     color: #666;
+    margin-bottom: 30px;
     font-weight: 400;
 }
 
@@ -178,11 +180,6 @@ h1 {
     animation: slideUp 0.3s;
 }
 
-@keyframes slideUp {
-    0% { transform: translateY(20px); opacity: 0; }
-    100% { transform: translateY(0); opacity: 1; }
-}
-
 .modal.win { border-color: #2e7d32; }
 .modal.lose { border-color: #c00; }
 .modal.win h2 { color: #2e7d32; }
@@ -196,7 +193,7 @@ h1 {
 }
 
 .modal p {
-    color: #666;
+    color: #333;
     margin-bottom: 24px;
     font-size: 16px;
     line-height: 1.5;
