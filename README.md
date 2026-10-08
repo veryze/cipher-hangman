@@ -4,7 +4,7 @@ This project was created for the course LNG302 Natural Language Processing at th
 
 This was created using OpenCode with the LLM functions deployed via Netlify, and refined by me.
 
-Mana Ganesh Kawamura (@veryze), 2026
+@veryze, 2026
 
 
 <!--- https://app.netlify.com/projects/hangmancipherfunc/overview --->
