@@ -2097,7 +2097,11 @@
             try {
                 const response = await fetch('/.netlify/functions/generate-phrase', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                    },
                 });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
