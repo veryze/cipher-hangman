@@ -137,6 +137,7 @@
             align-items: center;
             z-index: 1000;
             padding: 20px;
+            overflow-y: auto;
         }
 
         .modal-overlay.show {
@@ -154,8 +155,10 @@
             border: 2px solid #e0e0e0;
             border-radius: 12px;
             padding: 32px;
-            max-width: 480px;
+            max-width: 800px;
             width: 100%;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
             animation: slideUp 0.3s;
         }
@@ -179,9 +182,9 @@
         }
 
         .cipher-toggle-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
             margin-bottom: 24px;
         }
 
@@ -301,6 +304,9 @@
             }
             .modal {
                 padding: 20px;
+            }
+            .cipher-toggle-group {
+                grid-template-columns: 1fr;
             }
         }
     </style>

@@ -2095,7 +2095,7 @@
             if (!useLLMPhrases) return null;
             
             try {
-                const response = await fetch('https://hangmancipherfunc.netlify.app/.netlify/functions/generate-phrase', {
+                const response = await fetch('https://hangmancipherfunc.netlify.app/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                 });
