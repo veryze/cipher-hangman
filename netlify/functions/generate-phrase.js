@@ -23,7 +23,7 @@ async function callGroq(apiKey) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
+      model: "meta-llama/llama-prompt-guard-2-22m",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: USER_PROMPT },
