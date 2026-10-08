@@ -2,8 +2,10 @@
 # 
 # 1. Create new Netlify site: "Add new site" → "Deploy manually" → drag `netlify` folder
 # 2. Or via CLI: netlify deploy --dir=netlify --functions=netlify/functions
-# 3. Set env vars in Netlify dashboard: LLM_API_KEY, LLM_PROVIDER
+# 3. Set env var in Netlify dashboard: LLM_API_KEY (Groq API key)
 # 4. Update cipher-hangman.html fetch URL to: https://YOUR-SITE.netlify.app/.netlify/functions/generate-phrase
+# 
+# Uses Groq (llama-3.1-8b-instant) - fast, free tier
 
 [build]
   # No publish directory = no static hosting

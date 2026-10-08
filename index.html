@@ -402,6 +402,12 @@
                             <span>Vigenère <span class="cipher-desc">(polyalphabetic, key-based)</span></span>
                         </label>
                     </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="checkbox" class="cipher-checkbox" value="affine" checked>
+                            <span>Affine <span class="cipher-desc">(ax+b mod m, a,b,m ≤ 15)</span></span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -421,7 +427,8 @@
             a1z26: true,
             binary: true,
             morse: true,
-            vigenere: true
+            vigenere: true,
+            affine: true
         };
 
         // Load saved preferences
@@ -534,7 +541,8 @@
                 a1z26: true,
                 binary: true,
                 morse: true,
-                vigenere: true
+                vigenere: true,
+                affine: true
             };
             saveCipherPrefs();
             updateCheckboxes();

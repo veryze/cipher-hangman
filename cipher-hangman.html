@@ -915,6 +915,7 @@
                         <li data-cipher="binary"><a href="cipher-info.html#binary">Binary (5-bit)</a></li>
                         <li data-cipher="morse"><a href="cipher-info.html#morse">Morse Code</a></li>
                         <li data-cipher="vigenere"><a href="cipher-info.html#vigenere">Vigenère (polyalphabetic)</a></li>
+                        <li data-cipher="affine"><a href="cipher-info.html#affine">Affine (ax+b mod m)</a></li>
                     </ul>
                 </div>
             </aside>
@@ -942,6 +943,10 @@
                     <div class="info-row" id="vigKeyRow">
                         <span class="info-label">Key:</span>
                         <span class="info-value" id="vigenereKey">—</span>
+                    </div>
+                    <div class="info-row" id="affineFormulaRow">
+                        <span class="info-label">Formula:</span>
+                        <span class="info-value" id="affineFormula">—</span>
                     </div>
                 </div>
                 <div class="cipher-container">
@@ -1043,6 +1048,7 @@
                         <option value="binary">Binary</option>
                         <option value="morse">Morse Code</option>
                         <option value="vigenere">Vigenère</option>
+                        <option value="affine">Affine</option>
                     </select>
                 </div>
                 <div class="control-row" id="testerOffsetRow">
@@ -1052,6 +1058,19 @@
                 <div class="control-row" id="testerKeyRow" style="display: none;">
                     <label for="testerKey">Key:</label>
                     <input type="text" id="testerKey" maxlength="20" placeholder="e.g. LEMON">
+                </div>
+                <div class="control-row" id="testerAffineRow" style="display: none;">
+                    <label>Affine params:</label>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span>a=</span>
+                            <input type="text" id="testerAffineA" value="5" style="width: 50px;">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span>b=</span>
+                            <input type="text" id="testerAffineB" value="3" style="width: 50px;">
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="tester-textareas">
@@ -1176,28 +1195,13 @@
             "SAY HELLO TO MY LITTLE FRIEND",
             "YOU HAD ME AT HELLO",
             "SHOW ME THE MONEY",
-            "WHY SO SERIOUS",
             "I AM YOUR FATHER",
             "THERES NO CRYING IN BASEBALL",
             "I FEEL THE NEED THE NEED FOR SPEED",
             "YOU SHALL NOT PASS",
-            "MY PRECIOUS",
             "TO INFINITY AND BEYOND",
-            "JUST KEEP SWIMMING",
-            "REMEMBER WHO YOU ARE",
-            "THE CIRCLE OF LIFE",
-            "HAKUNA MATATA",
-            "LET IT GO",
-            "WINTER IS COMING",
             "A LION DOES NOT CONCERN HIMSELF WITH THE OPINION OF SHEEP",
-            "CHAOS IS A LADDER",
-            "VALAR MORGHULIS",
-            "VALAR DOHAERIS",
             "THE NIGHT IS DARK AND FULL OF TERRORS",
-            "I AM THE ONE WHO KNOCKS",
-            "SAY MY NAME",
-            "I AM THE DANGER",
-            "BETTER CALL SAUL",
             "WE ARE THE ONES WHO KNOCK",
             "NO HALF MEASURES",
             "YOU WIN OR YOU DIE",
@@ -1214,7 +1218,7 @@
             "BETTER LATE THAN NEVER",
             "DONT COUNT YOUR CHICKENS BEFORE THEY HATCH",
             "DONT PUT ALL YOUR EGGS IN ONE BASKET",
-            "EVERY DOG HAS HIS DAY",
+            "EVERY DOG HAS ITS DAY",
             "FORTUNE FAVORS THE BOLD",
             "GOOD THINGS COME TO THOSE WHO WAIT",
             "HONESTY IS THE BEST POLICY",
@@ -1296,13 +1300,30 @@
         // Vigenère key table
         const VIGENERE_KEYS = ['COVER', 'KEY', 'CODE', 'TOAST', 'SOUP', 'GREY', 'BLUE', 'RED', 'BLACK', 'TABLE', 'COLOUR'];
 
+        // Affine cipher key table: (a * x + b) mod 26
+        // a must be coprime with 26 for decryption to work
+        // a, b where |a|,|b| <= 15, excluding 0
+        const AFFINE_KEYS = [
+            { a: 5, b: 3 },
+            { a: 7, b: 2 },
+            { a: 11, b: 5 },
+            { a: 3, b: 7 },
+            { a: 9, b: 4 },
+            { a: 15, b: 1 },
+            { a: 5, b: 8 },
+            { a: 7, b: 9 },
+            { a: 11, b: 3 },
+            { a: 3, b: 11 },
+            { a: 9, b: 7 },
+        ];
+
         // Cipher state
-        let currentCipher = null; // { type: 'caesar'|'rot13'|'a1z26'|'atbash'|'vigenere', offset: number, name: string, key: string }
+        let currentCipher = null; // { type: 'caesar'|'rot13'|'a1z26'|'atbash'|'vigenere'|'affine', offset: number, name: string, key: string, a: number, b: number, m: number }
 
         // Generate a random cipher (Caesar, ROT13, A1Z26, or Atbash)
         function generateCipher() {
             // Read selected ciphers from sessionStorage (set by index.html)
-            let cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse', 'vigenere'];
+            let cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse', 'vigenere', 'affine'];
             try {
                 const selected = sessionStorage.getItem('cipherHangmanSelectedCiphers');
                 if (selected) {
@@ -1317,7 +1338,7 @@
             
             // Safety fallback - ensure we always have at least one cipher type
             if (!cipherTypes.length) {
-                cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse', 'vigenere'];
+                cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse', 'vigenere', 'affine'];
             }
             
             // Update active ciphers display
@@ -1368,6 +1389,16 @@
                     offset: 0,
                     name: `Vigenère (${key})`,
                     key: key
+                };
+            } else if (type === 'affine') {
+                // Affine cipher: (a * x + b) mod 26
+                const affineKey = AFFINE_KEYS[Math.floor(Math.random() * AFFINE_KEYS.length)];
+                currentCipher = {
+                    type: 'affine',
+                    offset: 0,
+                    name: `Affine (${affineKey.a}x + ${affineKey.b} mod 26)`,
+                    a: affineKey.a,
+                    b: affineKey.b
                 };
             } else {
                 // Caesar with random offset
@@ -1429,6 +1460,9 @@
                 // Build reverse map for decoding (key-dependent, but we can build for first key letter as reference)
                 const key = currentCipher.key;
                 // We'll handle encoding/decoding per-character in encodePhrase
+            } else if (currentCipher.type === 'affine') {
+                // Affine: (a * x + b) mod m - no fixed cipher map, handled in encodePhrase
+                // We'll handle encoding per-character in encodePhrase
             } else {
                 // Caesar/ROT13
                 alphabet.forEach((letter, i) => {
@@ -1483,6 +1517,27 @@
                     const encodedIdx = (charIdx + keyShift) % 26;
                     keyIndex++;
                     return alphabet[encodedIdx];
+                }).join('');
+            } else if (currentCipher.type === 'affine') {
+                // Affine cipher: (a * x + b) mod 26
+                // Takes A1Z26 value (A=1, B=2, ... Z=26), applies formula, converts back to letter
+                const { a, b } = currentCipher;
+                const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                const m = 26;
+                return phrase.split('').map(char => {
+                    if (char === ' ') return ' ';
+                    const upperChar = char.toUpperCase();
+                    const charIdx = alphabet.indexOf(upperChar);
+                    if (charIdx === -1) return char;
+                    // A1Z26 value (1-26)
+                    const x = charIdx + 1;
+                    // Apply affine formula: (a * x + b) mod 26
+                    let result = (a * x + b) % m;
+                    // Ensure positive result
+                    if (result <= 0) result += m;
+                    // Convert back to letter (1-26 -> A-Z)
+                    const letterIdx = ((result - 1) % 26);
+                    return alphabet[letterIdx];
                 }).join('');
             } else {
                 // Caesar/ROT13: letter substitution
@@ -2073,6 +2128,8 @@
             const activeRow = document.getElementById('activeCiphersRow');
             const vigKeyRow = document.getElementById('vigKeyRow');
             const vigenereKeyDisplay = document.getElementById('vigenereKey');
+            const affineFormulaRow = document.getElementById('affineFormulaRow');
+            const affineFormulaDisplay = document.getElementById('affineFormula');
             if (activeDisplay && activeRow) {
                 if (showActiveCiphers) {
                     activeRow.style.display = 'flex';
@@ -2087,6 +2144,15 @@
                     vigenereKeyDisplay.textContent = currentCipher.key;
                 } else {
                     vigKeyRow.style.display = 'none';
+                }
+            }
+            // Show/hide Affine formula row
+            if (affineFormulaRow && affineFormulaDisplay) {
+                if (currentCipher && currentCipher.type === 'affine') {
+                    affineFormulaRow.style.display = 'flex';
+                    affineFormulaDisplay.textContent = `${currentCipher.a}x + ${currentCipher.b} mod 26`;
+                } else {
+                    affineFormulaRow.style.display = 'none';
                 }
             }
         }
@@ -2155,6 +2221,7 @@
         function updateTesterOffsetVisibility() {
             testerOffsetRow.style.display = testerCipherSelect.value === 'caesar' ? 'flex' : 'none';
             testerKeyRow.style.display = testerCipherSelect.value === 'vigenere' ? 'flex' : 'none';
+            testerAffineRow.style.display = testerCipherSelect.value === 'affine' ? 'flex' : 'none';
         }
 
         function applyTesterCipher() {
@@ -2230,6 +2297,31 @@
                     // Preserve case
                     return char === char.toUpperCase() ? alphabet[encodedIdx] : alphabet[encodedIdx].toLowerCase();
                 }).join('');
+            } else if (cipher === 'affine') {
+                // Affine cipher: (a * x + b) mod 26
+                const a = parseInt(document.getElementById('testerAffineA').value) || 5;
+                const b = parseInt(document.getElementById('testerAffineB').value) || 3;
+                const m = 26;
+                
+                // Validate a is coprime with 26 (for decryption to work)
+                function gcd(x, y) { return y === 0 ? x : gcd(y, x % y); }
+                if (gcd(Math.abs(a), m) !== 1) {
+                    testerOutput.value = `Warning: a (${a}) and 26 should be coprime for unique decryption\n`;
+                }
+                
+                result = input.split('').map(char => {
+                    const upper = char.toUpperCase();
+                    const charIdx = alphabet.indexOf(upper);
+                    if (charIdx === -1) return char;
+                    // A1Z26 value (1-26)
+                    const x = charIdx + 1;
+                    // Apply affine formula: (a * x + b) mod 26
+                    let encoded = (a * x + b) % m;
+                    if (encoded <= 0) encoded += m;
+                    // Convert back to letter (1-26 -> A-Z)
+                    const letterIdx = ((encoded - 1) % 26);
+                    return char === char.toUpperCase() ? alphabet[letterIdx] : alphabet[letterIdx].toLowerCase();
+                }).join('');
             } else if (cipher === 'a1z26' || cipher === 'binary' || cipher === 'morse') {
                 result = input.split('').map(char => {
                     const upper = char.toUpperCase();
@@ -2270,6 +2362,8 @@
         testerOffset.addEventListener('input', applyTesterCipher);
         testerInput.addEventListener('input', applyTesterCipher);
         document.getElementById('testerKey').addEventListener('input', applyTesterCipher);
+        document.getElementById('testerAffineA').addEventListener('input', applyTesterCipher);
+        document.getElementById('testerAffineB').addEventListener('input', applyTesterCipher);
 
         // Close tester modal when clicking overlay
         testerModalOverlay.addEventListener('click', (e) => {
