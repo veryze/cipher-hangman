@@ -29,7 +29,8 @@ async function callGroq(apiKey) {
         { role: "user", content: USER_PROMPT },
       ],
       max_tokens: 64,
-      temperature: 0.8,
+      temperature: 0.6,
+      top_p: 0.95,
     }),
   });
   const data = await res.json();
