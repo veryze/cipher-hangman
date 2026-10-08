@@ -392,6 +392,17 @@
                         </label>
                     </div>
                 </div>
+
+                <div class="cipher-category">
+                    <h3>Polyalphabetic Ciphers</h3>
+                    
+                    <div class="cipher-option">
+                        <label>
+                            <input type="checkbox" class="cipher-checkbox" value="vigenere" checked>
+                            <span>Vigenère <span class="cipher-desc">(polyalphabetic, key-based)</span></span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
             <div class="modal-controls">
@@ -409,7 +420,8 @@
             atbash: true,
             a1z26: true,
             binary: true,
-            morse: true
+            morse: true,
+            vigenere: true
         };
 
         // Load saved preferences
@@ -521,7 +533,8 @@
                 atbash: true,
                 a1z26: true,
                 binary: true,
-                morse: true
+                morse: true,
+                vigenere: true
             };
             saveCipherPrefs();
             updateCheckboxes();

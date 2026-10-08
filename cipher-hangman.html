@@ -186,6 +186,191 @@
             font-weight: 500;
         }
 
+        /* Panel Tabs */
+        .panel-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+
+        .panel-tab {
+            flex: 1;
+            padding: 6px 8px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 600;
+            color: #888;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.15s;
+        }
+
+        .panel-tab:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .panel-tab.active {
+            background: #fff;
+            border-color: #e0e0e0;
+            border-bottom: 1px solid #fff;
+            color: #2e7d32;
+            margin-bottom: -1px;
+            z-index: 1;
+        }
+
+        .tab-content {
+            position: relative;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Vigenère Table */
+        .vigenere-container {
+            overflow-x: auto;
+            margin: 8px -8px;
+            padding: 8px;
+        }
+
+        /* Vigenère header with clear button */
+        .vigenere-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .vigenere-header h3 {
+            margin: 0;
+        }
+
+        .btn-small {
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: inherit;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-small:hover {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .vigenere-table {
+            border-collapse: collapse;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 10px;
+            min-width: 100%;
+        }
+
+        .vigenere-table th,
+        .vigenere-table td {
+            width: 18px;
+            height: 18px;
+            text-align: center;
+            border: none;
+        }
+
+        .vigenere-table th {
+            background: transparent;
+            font-weight: 600;
+            color: #666;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            padding: 0 2px;
+        }
+
+        .vigenere-table th:first-child,
+        .vigenere-table td:first-child {
+            background: transparent;
+            font-weight: 600;
+            color: #2e7d32;
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            padding: 0 4px;
+            user-select: none;
+        }
+
+        .vigenere-table td {
+            background: transparent;
+            color: #333;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: background 0.1s, color 0.1s;
+        }
+
+        .vigenere-table td:hover {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        /* Row/column highlight on cell hover */
+        .vigenere-table td.hover-row,
+        .vigenere-table th.hover-row,
+        .vigenere-table td.hover-col,
+        .vigenere-table th.hover-col {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        /* Persistent selection */
+        .vigenere-table td.selected {
+            background: #2e7d32 !important;
+            color: #fff !important;
+            font-weight: 700;
+        }
+
+        /* Intersection cell (selected cell within selected row/col) - darker */
+        .vigenere-table td.selected.selected-row.selected-col {
+            background: #1b5e20 !important;
+            color: #fff !important;
+        }
+
+        .vigenere-table td.selected-row,
+        .vigenere-table th.selected-row,
+        .vigenere-table td.selected-col,
+        .vigenere-table th.selected-col {
+            background: #e8f5e9 !important;
+            color: #1b5e20 !important;
+        }
+
+        .vigenere-table th.selected-header,
+        .vigenere-table td.selected-header {
+            background: #e8f5e9 !important;
+            color: #1b5e20 !important;
+            font-weight: 700;
+        }
+
+        .vigenere-hint {
+            font-size: 10px;
+            color: #888;
+            text-align: center;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
         .cipher-list {
             list-style: none;
             padding: 0;
@@ -694,8 +879,26 @@
             <!-- Alphabet Reference Panel -->
             <aside class="side-panel" id="alphabetPanel">
                 <div class="panel-content" id="alphabetContent">
-                    <h3>Alphabet Positions</h3>
-                    <div class="alphabet-grid" id="alphabetGrid"></div>
+                    <div class="panel-tabs">
+                        <button class="panel-tab active" data-tab="positions">Positions</button>
+                        <button class="panel-tab" data-tab="vigenere">Vigenère</button>
+                    </div>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="positionsPane">
+                            <h3>Alphabet Positions</h3>
+                            <div class="alphabet-grid" id="alphabetGrid"></div>
+                        </div>
+                        <div class="tab-pane" id="vigenerePane">
+                            <div class="vigenere-header">
+                                <h3>Vigenère Square</h3>
+                                <button class="btn-small" id="clearVigenereBtn">Clear</button>
+                            </div>
+                            <div class="vigenere-container">
+                                <table class="vigenere-table" id="vigenereTable"></table>
+                            </div>
+                            <p class="vigenere-hint">Row = Key letter, Column = Plaintext → Cell = Ciphertext</p>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
@@ -711,6 +914,7 @@
                         <li data-cipher="a1z26"><a href="cipher-info.html#a1z26">A1Z26 (letters→numbers)</a></li>
                         <li data-cipher="binary"><a href="cipher-info.html#binary">Binary (5-bit)</a></li>
                         <li data-cipher="morse"><a href="cipher-info.html#morse">Morse Code</a></li>
+                        <li data-cipher="vigenere"><a href="cipher-info.html#vigenere">Vigenère (polyalphabetic)</a></li>
                     </ul>
                 </div>
             </aside>
@@ -734,6 +938,10 @@
                     <div class="info-row" id="activeCiphersRow">
                         <span class="info-label">Active Ciphers:</span>
                         <span class="info-value" id="activeCiphersDisplay" style="font-size: 12px;">—</span>
+                    </div>
+                    <div class="info-row" id="vigKeyRow">
+                        <span class="info-label">Key:</span>
+                        <span class="info-value" id="vigenereKey">—</span>
                     </div>
                 </div>
                 <div class="cipher-container">
@@ -834,11 +1042,16 @@
                         <option value="a1z26">A1Z26</option>
                         <option value="binary">Binary</option>
                         <option value="morse">Morse Code</option>
+                        <option value="vigenere">Vigenère</option>
                     </select>
                 </div>
                 <div class="control-row" id="testerOffsetRow">
                     <label for="testerOffset">Offset:</label>
                     <input type="number" id="testerOffset" min="-26" max="26" value="3" step="1">
+                </div>
+                <div class="control-row" id="testerKeyRow" style="display: none;">
+                    <label for="testerKey">Key:</label>
+                    <input type="text" id="testerKey" maxlength="20" placeholder="e.g. LEMON">
                 </div>
             </div>
             <div class="tester-textareas">
@@ -1080,13 +1293,16 @@
         let showInfoPanel = true; // Default to showing info panel
         let useLLMPhrases = true; // Default to AI phrases
 
+        // Vigenère key table
+        const VIGENERE_KEYS = ['COVER', 'KEY', 'CODE', 'TOAST', 'SOUP', 'GREY', 'BLUE', 'RED', 'BLACK', 'TABLE', 'COLOUR'];
+
         // Cipher state
-        let currentCipher = null; // { type: 'caesar'|'rot13'|'a1z26'|'atbash', offset: number, name: string }
+        let currentCipher = null; // { type: 'caesar'|'rot13'|'a1z26'|'atbash'|'vigenere', offset: number, name: string, key: string }
 
         // Generate a random cipher (Caesar, ROT13, A1Z26, or Atbash)
         function generateCipher() {
             // Read selected ciphers from sessionStorage (set by index.html)
-            let cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse'];
+            let cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse', 'vigenere'];
             try {
                 const selected = sessionStorage.getItem('cipherHangmanSelectedCiphers');
                 if (selected) {
@@ -1101,7 +1317,7 @@
             
             // Safety fallback - ensure we always have at least one cipher type
             if (!cipherTypes.length) {
-                cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse'];
+                cipherTypes = ['caesar', 'rot13', 'a1z26', 'atbash', 'binary', 'morse', 'vigenere'];
             }
             
             // Update active ciphers display
@@ -1143,6 +1359,15 @@
                     type: 'morse',
                     offset: 0,
                     name: 'Morse Code'
+                };
+            } else if (type === 'vigenere') {
+                // Vigenère with random key from table
+                const key = VIGENERE_KEYS[Math.floor(Math.random() * VIGENERE_KEYS.length)];
+                currentCipher = {
+                    type: 'vigenere',
+                    offset: 0,
+                    name: `Vigenère (${key})`,
+                    key: key
                 };
             } else {
                 // Caesar with random offset
@@ -1199,6 +1424,11 @@
                     cipherMap[letter] = encoded;
                     reverseCipherMap[encoded] = letter;
                 });
+            } else if (currentCipher.type === 'vigenere') {
+                // Vigenère: polyalphabetic - no fixed cipher map, handled in encodePhrase
+                // Build reverse map for decoding (key-dependent, but we can build for first key letter as reference)
+                const key = currentCipher.key;
+                // We'll handle encoding/decoding per-character in encodePhrase
             } else {
                 // Caesar/ROT13
                 alphabet.forEach((letter, i) => {
@@ -1237,6 +1467,23 @@
                     if (char === ' ') return ' ';
                     return cipherMap[char] || char;
                 }).join('');
+            } else if (currentCipher.type === 'vigenere') {
+                // Vigenère: polyalphabetic substitution
+                // Each letter is shifted by the corresponding key letter (A=0, B=1, ...)
+                const key = currentCipher.key;
+                const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                let keyIndex = 0;
+                return phrase.split('').map(char => {
+                    if (char === ' ') return ' ';
+                    const upperChar = char.toUpperCase();
+                    const charIdx = alphabet.indexOf(upperChar);
+                    if (charIdx === -1) return char;
+                    const keyChar = key[keyIndex % key.length];
+                    const keyShift = alphabet.indexOf(keyChar);
+                    const encodedIdx = (charIdx + keyShift) % 26;
+                    keyIndex++;
+                    return alphabet[encodedIdx];
+                }).join('');
             } else {
                 // Caesar/ROT13: letter substitution
                 return phrase.split('').map(char => {
@@ -1264,6 +1511,128 @@
                     <span class="position">${index + 1}</span>
                 `;
                 alphabetGrid.appendChild(item);
+            });
+            
+            // Initialize Vigenère table
+            initVigenereTable();
+        }
+
+        // Initialize Vigenère square table
+        function initVigenereTable() {
+            const table = document.getElementById('vigenereTable');
+            if (!table) return;
+            
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            let html = '<thead><tr><th></th>';
+            
+            // Header row (plaintext letters)
+            alphabet.forEach((letter, colIdx) => {
+                html += `<th data-col="${colIdx}">${letter}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            // Data rows (key letters)
+            alphabet.forEach((keyLetter, rowIdx) => {
+                html += `<tr data-row="${rowIdx}"><th data-row="${rowIdx}">${keyLetter}</th>`;
+                alphabet.forEach((plainLetter, colIdx) => {
+                    // Vigenère: (plain + key) mod 26
+                    const cipherIdx = (colIdx + rowIdx) % 26;
+                    const cipherLetter = alphabet[cipherIdx];
+                    html += `<td data-row="${rowIdx}" data-col="${colIdx}" data-key="${keyLetter}" data-plain="${plainLetter}" data-cipher="${cipherLetter}">${cipherLetter}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody>';
+            table.innerHTML = html;
+            
+            // Add hover and click handlers
+            initVigenereInteractions(table);
+        }
+
+        // Initialize Vigenère table interactions (hover + click)
+        function initVigenereInteractions(table) {
+            const cells = table.querySelectorAll('td[data-row]');
+            const rowHeaders = table.querySelectorAll('tbody th[data-row]');
+            const colHeaders = table.querySelectorAll('thead th[data-col]');
+            
+            cells.forEach(cell => {
+                const row = cell.dataset.row;
+                const col = cell.dataset.col;
+                
+                // Hover: highlight row and column
+                cell.addEventListener('mouseenter', () => {
+                    highlightRowCol(table, row, col, 'hover-row', 'hover-col');
+                });
+                
+                cell.addEventListener('mouseleave', () => {
+                    table.querySelectorAll('.hover-row, .hover-col').forEach(el => {
+                        el.classList.remove('hover-row', 'hover-col');
+                    });
+                });
+                
+                // Click: toggle persistent row/col highlight
+                cell.addEventListener('click', () => {
+                    const isSelected = cell.classList.toggle('selected');
+                    
+                    if (isSelected) {
+                        // Add persistent highlight
+                        highlightRowCol(table, row, col, 'selected-row', 'selected-col');
+                        table.querySelector(`tbody th[data-row="${row}"]`)?.classList.add('selected-header');
+                        table.querySelector(`thead th[data-col="${col}"]`)?.classList.add('selected-header');
+                    } else {
+                        // Remove persistent highlight if no other selected cell in same row/col
+                        clearHighlightIfLast(table, row, col, 'selected-row', 'selected-col');
+                    }
+                });
+            });
+        }
+        
+        function highlightRowCol(table, row, col, rowClass, colClass) {
+            table.querySelectorAll(`tr[data-row="${row}"] td, tbody th[data-row="${row}"]`).forEach(el => el.classList.add(rowClass));
+            table.querySelectorAll(`td[data-col="${col}"], thead th[data-col="${col}"]`).forEach(el => el.classList.add(colClass));
+        }
+        
+        function clearHighlightIfLast(table, row, col, rowClass, colClass) {
+            const otherInRow = table.querySelector(`td[data-row="${row}"].selected`);
+            const otherInCol = table.querySelector(`td[data-col="${col}"].selected`);
+            if (!otherInRow) {
+                table.querySelectorAll(`tr[data-row="${row}"] td, tbody th[data-row="${row}"]`).forEach(el => el.classList.remove(rowClass));
+                table.querySelector(`tbody th[data-row="${row}"]`)?.classList.remove('selected-header');
+            }
+            if (!otherInCol) {
+                table.querySelectorAll(`td[data-col="${col}"], thead th[data-col="${col}"]`).forEach(el => el.classList.remove(colClass));
+                table.querySelector(`thead th[data-col="${col}"]`)?.classList.remove('selected-header');
+            }
+        }
+
+        // Clear all highlights button
+        document.getElementById('clearVigenereBtn')?.addEventListener('click', () => {
+            const vigenereTable = document.getElementById('vigenereTable');
+            if (vigenereTable) {
+                vigenereTable.querySelectorAll('.selected, .selected-row, .selected-col, .selected-header').forEach(el => {
+                    el.classList.remove('selected', 'selected-row', 'selected-col', 'selected-header');
+                });
+            }
+        });
+
+        // Initialize alphabet panel tabs
+        function initAlphabetTabs() {
+            const tabs = document.querySelectorAll('#alphabetContent .panel-tab');
+            const panes = document.querySelectorAll('#alphabetContent .tab-pane');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetTab = tab.dataset.tab;
+                    
+                    // Update tabs
+                    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === targetTab));
+                    
+                    // Update panes
+                    panes.forEach(pane => {
+                        pane.classList.toggle('active', pane.id === `${targetTab}Pane`);
+                    });
+                });
             });
         }
 
@@ -1702,11 +2071,22 @@
         function updateActiveCiphersDisplay() {
             const activeDisplay = document.getElementById('activeCiphersDisplay');
             const activeRow = document.getElementById('activeCiphersRow');
+            const vigKeyRow = document.getElementById('vigKeyRow');
+            const vigenereKeyDisplay = document.getElementById('vigenereKey');
             if (activeDisplay && activeRow) {
                 if (showActiveCiphers) {
                     activeRow.style.display = 'flex';
                 } else {
                     activeRow.style.display = 'none';
+                }
+            }
+            // Show/hide Vigenère key row
+            if (vigKeyRow && vigenereKeyDisplay) {
+                if (currentCipher && currentCipher.type === 'vigenere') {
+                    vigKeyRow.style.display = 'flex';
+                    vigenereKeyDisplay.textContent = currentCipher.key;
+                } else {
+                    vigKeyRow.style.display = 'none';
                 }
             }
         }
@@ -1774,6 +2154,7 @@
         // Tester functions
         function updateTesterOffsetVisibility() {
             testerOffsetRow.style.display = testerCipherSelect.value === 'caesar' ? 'flex' : 'none';
+            testerKeyRow.style.display = testerCipherSelect.value === 'vigenere' ? 'flex' : 'none';
         }
 
         function applyTesterCipher() {
@@ -1830,7 +2211,26 @@
             }
             
             // Apply cipher to input
-            if (cipher === 'a1z26' || cipher === 'binary' || cipher === 'morse') {
+            if (cipher === 'vigenere') {
+                // Vigenère: polyalphabetic substitution with key
+                const key = (document.getElementById('testerKey').value || 'KEY').toUpperCase().replace(/[^A-Z]/g, '');
+                if (!key) {
+                    testerOutput.value = 'Enter a key (letters only)';
+                    return;
+                }
+                let keyIndex = 0;
+                result = input.split('').map(char => {
+                    const upper = char.toUpperCase();
+                    const charIdx = alphabet.indexOf(upper);
+                    if (charIdx === -1) return char;
+                    const keyChar = key[keyIndex % key.length];
+                    const keyShift = alphabet.indexOf(keyChar);
+                    const encodedIdx = (charIdx + keyShift) % 26;
+                    keyIndex++;
+                    // Preserve case
+                    return char === char.toUpperCase() ? alphabet[encodedIdx] : alphabet[encodedIdx].toLowerCase();
+                }).join('');
+            } else if (cipher === 'a1z26' || cipher === 'binary' || cipher === 'morse') {
                 result = input.split('').map(char => {
                     const upper = char.toUpperCase();
                     if (cipherMap[upper]) return cipherMap[upper];
@@ -1869,6 +2269,7 @@
         });
         testerOffset.addEventListener('input', applyTesterCipher);
         testerInput.addEventListener('input', applyTesterCipher);
+        document.getElementById('testerKey').addEventListener('input', applyTesterCipher);
 
         // Close tester modal when clicking overlay
         testerModalOverlay.addEventListener('click', (e) => {
@@ -1879,6 +2280,7 @@
 
         // Initialize alphabet grid
         initAlphabetGrid();
+        initAlphabetTabs();
 
         // Helper to check if any modal is open
         function isAnyModalOpen() {

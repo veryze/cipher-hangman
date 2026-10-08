@@ -369,6 +369,40 @@
             </div>
         </article>
 
+        <!-- Vigenère Cipher -->
+        <article class="cipher-card" id="vigenere">
+            <h2>Vigenère Cipher</h2>
+            
+            <h3>How It Works</h3>
+            <p>The Vigenère cipher is a polyalphabetic substitution cipher that uses a keyword to determine different Caesar shifts for each letter. The key repeats to match the length of the plaintext. Each letter of the key determines the shift: A=0, B=1, ..., Z=25.</p>
+            
+            <div class="example">
+                <div class="label">Example (key: LEMON)</div>
+                <div class="text">Plain:  ATTACKATDAWN<br>Key:    LEMONLEMONLE<br>Cipher: LXFOPVEFRNHR</div>
+            </div>
+
+            <h3>Encryption</h3>
+            <p>For each plaintext letter, shift it forward by the corresponding key letter's position. If the key is shorter than the message, it repeats. Non-letter characters (spaces, punctuation) are typically preserved but not encrypted.</p>
+
+            <h3>Decryption</h3>
+            <p>Shift each ciphertext letter backward by the corresponding key letter's position. The same key is used for both encryption and decryption.</p>
+
+            <div class="fun-fact">
+                <div class="label">Fun Fact</div>
+                <p>Called "le chiffre indéchiffrable" (the indecipherable cipher) for 300 years until Charles Babbage and Friedrich Kasiski independently broke it in the 1850s using key length analysis (Kasiski examination) and frequency analysis on each alphabet.</p>
+            </div>
+
+            <div class="sources">
+                <h3>Sources</h3>
+                <ul>
+                    <li>Vigenère, Blaise de. <em>Traicté des Chiffres</em>. 1586.</li>
+                    <li>Kasiski, Friedrich. <em>Die Geheimschriften und die Dechiffrir-Kunst</em>. 1863.</li>
+                    <li>Singh, Simon. <em>The Code Book</em>. Anchor Books, 1999. Ch. 2.</li>
+                    <li>Kahn, David. <em>The Codebreakers</em>. Scribner, 1996. Ch. 4.</li>
+                </ul>
+            </div>
+        </article>
+
         <footer style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e0e0e0; color: #888; font-size: 13px;">
             <p>Cipher Hangman — LNG302 Project</p>
             <p>Mana Ganesh Kawamura, 2026</p>
