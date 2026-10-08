@@ -3,7 +3,7 @@
  * 
  * Deploy: Connect repo to Netlify, it auto-detects netlify/functions/
  * Set environment variable LLM_API_KEY in Netlify dashboard (Groq API key)
- * Model: qwen/qwen3.8-27b (fast, free tier)
+ * Model: qwen/qwen3-27b (fast, free tier)
  */
 
 const SYSTEM_PROMPT = `Generate ONE short, recognizable English phrase for a Hangman game.
@@ -13,32 +13,35 @@ Requirements:
 - ONLY uppercase letters A-Z and spaces (NO punctuation, numbers, special chars)
 - Return ONLY the phrase, nothing else`;
 
-const USER_PROMPT = "Give me one phrase:";
-
-async function callGroq(apiKey) {
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+function callGroq(apiKey) {
+  // Add random seed to prompt for variety
+  const seed = Math.random().toString(36).substring(7);
+  const userPrompt = `Give me one phrase (variation: ${seed}):`;
+  
+  return fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "qwen/qwen3.8-27b",
+      model: "qwen/qwen3-27b",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: USER_PROMPT },
+        { role: "user", content: userPrompt },
       ],
       max_tokens: 64,
-      temperature: 0.6,
+      temperature: 0.9,
       top_p: 0.95,
     }),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    console.error("Groq API error:", res.status, data);
-    throw new Error(`Groq ${res.status}: ${data.error?.message || JSON.stringify(data)}`);
-  }
-  return data.choices?.[0]?.message?.content?.trim();
+  }).then(res => res.json())
+    .then(data => {
+      if (!res.ok) {
+        console.error("Groq API error:", res.status, data);
+        throw new Error(`Groq ${res.status}: ${data.error?.message || JSON.stringify(data)}`);
+      }
+      return data.choices?.[0]?.message?.content?.trim();
+    });
 }
 
 function validatePhrase(phrase) {
