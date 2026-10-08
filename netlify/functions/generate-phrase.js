@@ -33,6 +33,10 @@ async function callGroq(apiKey) {
     }),
   });
   const data = await res.json();
+  if (!res.ok) {
+    console.error("Groq API error:", res.status, data);
+    throw new Error(`Groq ${res.status}: ${data.error?.message || JSON.stringify(data)}`);
+  }
   return data.choices?.[0]?.message?.content?.trim();
 }
 
