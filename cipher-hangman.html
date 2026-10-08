@@ -795,6 +795,15 @@
                     </label>
                 </label>
             </div>
+            <div class="setting-row">
+                <label class="toggle-label" title="Fetch new phrases from AI on each game (requires Netlify deployment)">
+                    <span class="toggle-text">Use AI Phrases</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="useLLMPhrasesToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </label>
+            </div>
             <div class="modal-controls">
                 <button class="btn" id="settingsMenuBtn">MENU</button>
                 <button class="btn primary" id="settingsCloseBtn">CLOSE</button>
@@ -934,7 +943,74 @@
             "HOPE IS A GOOD THING MAYBE THE BEST OF THINGS",
             "WHY SO SERIOUS",
             "JUST KEEP SWIMMING",
-            "WITH GREAT POWER COMES GREAT RESPONSIBILITY"
+            "WITH GREAT POWER COMES GREAT RESPONSIBILITY",
+            "HOUSTON WE HAVE A PROBLEM",
+            "ET PHONE HOME",
+            "YOU TALKING TO ME",
+            "HERE IS LOOKING AT YOU KID",
+            "GO AHEAD MAKE MY DAY",
+            "YOU CANT HANDLE THE TRUTH",
+            "ILL BE BACK",
+            "SAY HELLO TO MY LITTLE FRIEND",
+            "YOU HAD ME AT HELLO",
+            "SHOW ME THE MONEY",
+            "WHY SO SERIOUS",
+            "I AM YOUR FATHER",
+            "THERES NO CRYING IN BASEBALL",
+            "I FEEL THE NEED THE NEED FOR SPEED",
+            "YOU SHALL NOT PASS",
+            "MY PRECIOUS",
+            "TO INFINITY AND BEYOND",
+            "JUST KEEP SWIMMING",
+            "REMEMBER WHO YOU ARE",
+            "THE CIRCLE OF LIFE",
+            "HAKUNA MATATA",
+            "LET IT GO",
+            "WINTER IS COMING",
+            "A LION DOES NOT CONCERN HIMSELF WITH THE OPINION OF SHEEP",
+            "CHAOS IS A LADDER",
+            "VALAR MORGHULIS",
+            "VALAR DOHAERIS",
+            "THE NIGHT IS DARK AND FULL OF TERRORS",
+            "I AM THE ONE WHO KNOCKS",
+            "SAY MY NAME",
+            "I AM THE DANGER",
+            "BETTER CALL SAUL",
+            "WE ARE THE ONES WHO KNOCK",
+            "NO HALF MEASURES",
+            "YOU WIN OR YOU DIE",
+            "THE THINGS I DO FOR LOVE",
+            "A MIND NEEDS BOOKS LIKE A SWORD NEEDS A WHETSTONE",
+            "NOT ALL THOSE WHO WANDER ARE LOST",
+            "ALL WE HAVE TO DECIDE IS WHAT TO DO WITH THE TIME GIVEN US",
+            "EVEN THE SMALLEST PERSON CAN CHANGE THE COURSE OF THE FUTURE",
+            "THERE IS SOME GOOD IN THIS WORLD AND ITS WORTH FIGHTING FOR",
+            "ALL GOOD THINGS MUST COME TO AN END",
+            "EVERY CLOUD HAS A SILVER LINING",
+            "ACTIONS SPEAK LOUDER THAN WORDS",
+            "BEAUTY IS IN THE EYE OF THE BEHOLDER",
+            "BETTER LATE THAN NEVER",
+            "DONT COUNT YOUR CHICKENS BEFORE THEY HATCH",
+            "DONT PUT ALL YOUR EGGS IN ONE BASKET",
+            "EVERY DOG HAS HIS DAY",
+            "FORTUNE FAVORS THE BOLD",
+            "GOOD THINGS COME TO THOSE WHO WAIT",
+            "HONESTY IS THE BEST POLICY",
+            "IF IT AINT BROKE DONT FIX IT",
+            "KNOWLEDGE IS POWER",
+            "LAUGHTER IS THE BEST MEDICINE",
+            "LOOK BEFORE YOU LEAP",
+            "MONEY DOESNT GROW ON TREES",
+            "NO PAIN NO GAIN",
+            "PRACTICE MAKES PERFECT",
+            "THE EARLY BIRD CATCHES THE WORM",
+            "THE PEN IS MIGHTIER THAN THE SWORD",
+            "TIME HEALS ALL WOUNDS",
+            "TWO HEADS ARE BETTER THAN ONE",
+            "WHEN IN ROME DO AS THE ROMANS DO",
+            "WHERE THERES SMOKE THERES FIRE",
+            "YOU CANT JUDGE A BOOK BY ITS COVER",
+            "YOU REAP WHAT YOU SOW",
         ];
 
         // Game state
@@ -971,6 +1047,7 @@
         const showCipherToggle = document.getElementById('showCipherToggle');
         const showActiveCiphersToggle = document.getElementById('showActiveCiphersToggle');
         const showInfoPanelToggle = document.getElementById('showInfoPanelToggle');
+        const useLLMPhrasesToggle = document.getElementById('useLLMPhrasesToggle');
         const settingsCloseBtn = document.getElementById('settingsCloseBtn');
         const settingsMenuBtn = document.getElementById('settingsMenuBtn');
         const alphabetToggleBtn = document.getElementById('alphabetToggleBtn');
@@ -992,6 +1069,7 @@
         let showCipherType = false; // Default to hiding cipher type
         let showActiveCiphers = false; // Default to hiding active ciphers
         let showInfoPanel = true; // Default to showing info panel
+        let useLLMPhrases = false; // Default to local phrases
 
         // Cipher state
         let currentCipher = null; // { type: 'caesar'|'rot13'|'a1z26'|'atbash', offset: number, name: string }
@@ -1522,9 +1600,21 @@
         }
 
         // Initialize new game
-        function newGame() {
+        async function newGame() {
+            // Show loading state
+            newGameBtn.disabled = true;
+            newGameBtn.textContent = 'GENERATING...';
+            
+            // Try to fetch a new phrase from LLM API
+            let phrase = await fetchLLMPhrase();
+            
+            // Fallback to local phrases if API fails
+            if (!phrase) {
+                phrase = PHRASES[Math.floor(Math.random() * PHRASES.length)];
+            }
+            
             // Reset state
-            originalPhrase = PHRASES[Math.floor(Math.random() * PHRASES.length)];
+            originalPhrase = phrase;
             generateCipher();
             encodedPhrase = encodePhrase(originalPhrase);
             revealed = {};
@@ -1561,6 +1651,28 @@
             drawHangman();
             renderPhrase();
             renderKeyboard();
+            
+            // Restore button
+            newGameBtn.disabled = false;
+            newGameBtn.textContent = 'NEW GAME';
+        }
+
+        // Fetch a new phrase from the LLM API
+        async function fetchLLMPhrase() {
+            if (!useLLMPhrases) return null;
+            
+            try {
+                const response = await fetch('/.netlify/functions/generate-phrase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                return data.phrase || null;
+            } catch (e) {
+                console.log('LLM phrase fetch failed, using local phrases:', e);
+                return null;
+            }
         }
 
         // Update remaining entropy display
@@ -1624,6 +1736,9 @@
         showInfoPanelToggle.addEventListener('change', (e) => {
             showInfoPanel = e.target.checked;
             updateInfoPanelDisplay();
+        });
+        useLLMPhrasesToggle.addEventListener('change', (e) => {
+            useLLMPhrases = e.target.checked;
         });
 
         // Close settings modal when clicking overlay
