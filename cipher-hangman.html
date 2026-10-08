@@ -796,10 +796,10 @@
                 </label>
             </div>
             <div class="setting-row">
-                <label class="toggle-label" title="Fetch new phrases from AI on each game (requires Netlify deployment)">
+                <label class="toggle-label" title="Fetch new phrases from AI on each game">
                     <span class="toggle-text">Use AI Phrases</span>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="useLLMPhrasesToggle">
+                        <input type="checkbox" id="useLLMPhrasesToggle" checked>
                         <span class="toggle-slider"></span>
                     </label>
                 </label>
@@ -1069,7 +1069,7 @@
         let showCipherType = false; // Default to hiding cipher type
         let showActiveCiphers = false; // Default to hiding active ciphers
         let showInfoPanel = true; // Default to showing info panel
-        let useLLMPhrases = false; // Default to local phrases
+        let useLLMPhrases = true; // Default to AI phrases
 
         // Cipher state
         let currentCipher = null; // { type: 'caesar'|'rot13'|'a1z26'|'atbash', offset: number, name: string }
@@ -1662,7 +1662,7 @@
             if (!useLLMPhrases) return null;
             
             try {
-                const response = await fetch('/.netlify/functions/generate-phrase', {
+                const response = await fetch('https://hangmancipherfunc.netlify.app/.netlify/functions/generate-phrase', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                 });

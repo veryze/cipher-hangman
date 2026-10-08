@@ -1,0 +1,21 @@
+# Deploy ONLY functions to Netlify (static site stays on GitHub Pages)
+# 
+# 1. Create new Netlify site: "Add new site" → "Deploy manually" → drag `netlify` folder
+# 2. Or via CLI: netlify deploy --dir=netlify --functions=netlify/functions
+# 3. Set env vars in Netlify dashboard: LLM_API_KEY, LLM_PROVIDER
+# 4. Update cipher-hangman.html fetch URL to: https://YOUR-SITE.netlify.app/.netlify/functions/generate-phrase
+
+[build]
+  # No publish directory = no static hosting
+  functions = "functions"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["**/*.js"]
+
+# Free tier limits (Netlify):
+# - 125K function invocations/month
+# - 100GB bandwidth/month
+# - 100 hours build time/month
+# - Unlimited personal projects
+# - Custom domains + HTTPS free
