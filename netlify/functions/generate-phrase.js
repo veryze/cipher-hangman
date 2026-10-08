@@ -3,7 +3,7 @@
  * 
  * Deploy: Connect repo to Netlify, it auto-detects netlify/functions/
  * Set environment variable LLM_API_KEY in Netlify dashboard (Groq API key)
- * Model: llama-3.1-8b-instant (fast, free tier)
+ * Model: qwen/qwen3.8-27b (fast, free tier)
  */
 
 const SYSTEM_PROMPT = `Generate ONE short, recognizable English phrase for a Hangman game.
@@ -23,7 +23,7 @@ async function callGroq(apiKey) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "qwen/qwen3-27b",
+      model: "qwen/qwen3.8-27b",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: USER_PROMPT },
