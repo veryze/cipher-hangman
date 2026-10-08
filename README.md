@@ -1,1 +1,1 @@
-[![Netlify Status](https://api.netlify.com/api/v1/badges/c7317ca7-ec86-487e-9a42-12bdc7ee9dc1/deploy-status)](https://app.netlify.com/projects/hangman-cipher/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/cdcf07db-47d0-48f3-8d63-7b29eb3ed8fc/deploy-status)](https://app.netlify.com/projects/hangmancipherfunc/deploys)
