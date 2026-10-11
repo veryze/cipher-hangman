@@ -6,10 +6,12 @@
  * Model: qwen/qwen3-27b (fast, free tier)
  */
 
-const SYSTEM_PROMPT = `Generate ONE short, recognizable English phrase for a Hangman game.
+const SYSTEM_PROMPT = `Generate ONE short, recognizable English phrase for Hangman.
 Requirements:
 - 15-60 characters (including spaces)
-- Well-known: movie quote, proverb, idiom, famous saying, song lyric, book title
+- MUST be a well-known: movie quote, proverb, idiom, famous saying, song lyric, book title
+- IDIOMS MUST be real, established English idioms (e.g., "BITE THE BULLET", "BREAK A LEG", "PIECE OF CAKE")
+- NO invented phrases, NO obscure references
 - ONLY uppercase letters A-Z and spaces (NO punctuation, numbers, special chars)
 - Return ONLY the phrase, nothing else`;
 
@@ -31,7 +33,7 @@ function callGroq(apiKey) {
         { role: "user", content: userPrompt },
       ],
       max_tokens: 64,
-      temperature: 0.8,
+      temperature: 0.5,
       top_p: 0.9,
       presence_penalty: 0.5,
       frequency_penalty: 0.5,
