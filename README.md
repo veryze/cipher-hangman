@@ -31,16 +31,18 @@ main
 
 ---
 
-*generate-phrase.md* is a SKILLS.md file that instructs an LLM to perform a set of actions, and gives clear parameters (in this one, the parameters include variables such as the minimum length of the generated response, as well as its format (integer)). It essentially helps define the response called by *generate-phrase.js*. 
+*generate-phrase.md* is a SKILLS.md file that instructs an LLM to perform a set of actions, and gives clear parameters (in this one, the parameters include variables such as the minimum length of the generated response, as well as its format (integer)). It essentially helps define the response called by *generate-phrase.js*. Although it isn't directly called within my game, it was helpful for debugging the prompt when used with OpenCode. 
 
 ---
 
 *generate-phrase.js* is a JavaScript file that calls Groq and generates a short phrase to be used for the main Hangman game. 
 ```
-SYSTEM_PROMPT = `Generate ONE short, recognizable English phrase for a Hangman game.
+const SYSTEM_PROMPT = `Generate ONE short, recognizable English phrase for Hangman.
 Requirements:
 - 15-60 characters (including spaces)
-- Well-known: movie quote, proverb, idiom, famous saying, song lyric, book title
+- MUST be a well-known: movie quote, proverb, idiom, famous saying, song lyric, book title
+- IDIOMS MUST be real, established English idioms (e.g., "BITE THE BULLET", "BREAK A LEG", "PIECE OF CAKE")
+- NO invented phrases, NO obscure references
 - ONLY uppercase letters A-Z and spaces (NO punctuation, numbers, special chars)
 - Return ONLY the phrase, nothing else`;
 ```
@@ -103,6 +105,26 @@ I got two beta testers to repeatedly try my code throughout, and implemented the
 
 ## Challenges
 
+**Fixed**: 
+- The cipher counted whitespace wrong, shifting the displayed enciphered letters and making the cipher incorrect and unanswerable
+- The settings button was unclickable
+- The ciphers wouldn't persist in local storage when moving from the index to the main file
+- The enciphered code was entirely blank
+- Letter buttons on the right 
+- Originally had a clear storage button for debugging to act as a cache refresh, but it wouldn't reset the ciphers to all true (i.e. as if they'd been checked on the index) so I deleted the button altogether
+- The info page, when accessed from the menu, linked to the main page (edited this to just be a back button)
+- Originally used GitHub Pages, but it wouldn't call Groq correctly
+- The toggles stopped working
+- The activeCiphers toggle was on by default but marked as unchecked on the settings page
+- Netlify wouldn't deploy
+- Caesar cipher was hardcoded as checked even when unchecked by the user
+- When the cipher testing modal was open, inputs would still affect the hangman game
+- The cipher generation didn't work
+- Autodeploy was on on Netlify, and credits ran out since each deployment cost free credits 
+- The cipher generation's temperature was too low (kept displaying the same phrase)
+- The temperature was too high (made up idioms)
+- The highlighting in the Vigenere cipher grid didn't remain when the letter was clicked and the mouse moved away
+- The Netlify logo covered the hint text on the Vigenere cipher grid
 
 
 
