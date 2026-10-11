@@ -33,7 +33,7 @@ function callGroq(apiKey) {
         { role: "user", content: userPrompt },
       ],
       max_tokens: 64,
-      temperature: 0.5,
+      temperature: 0.9,
       top_p: 0.9,
       presence_penalty: 0.5,
       frequency_penalty: 0.5,
