@@ -31,27 +31,29 @@ function callGroq(apiKey) {
         { role: "user", content: userPrompt },
       ],
       max_tokens: 64,
-      temperature: 0.9,
-      top_p: 0.95,
+      temperature: 0.7,
+      top_p: 0.9,
     }),
-  }).then(res => res.json())
-    .then(data => {
-      if (!res.ok) {
-        console.error("Groq API error:", res.status, data);
-        throw new Error(`Groq ${res.status}: ${data.error?.message || JSON.stringify(data)}`);
-      }
-      return data.choices?.[0]?.message?.content?.trim();
-    });
+  })
+  .then(async res => {
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("Groq API error:", res.status, data);
+      throw new Error(`Groq ${res.status}: ${data.error?.message || JSON.stringify(data)}`);
+    }
+    return data.choices?.[0]?.message?.content?.trim();
+  });
 }
 
 function validatePhrase(phrase) {
   if (!phrase) return false;
-  const cleaned = phrase.trim().toUpperCase();
-  if (cleaned.length < 15 || cleaned.length > 60) return false;
+  // Strip any non-A-Z/space chars instead of rejecting outright
+  const cleaned = phrase.trim().toUpperCase().replace(/[^A-Z\s]/g, '');
+  if (cleaned.length < 10 || cleaned.length > 70) return false;
   // Only A-Z and spaces
   if (!/^[A-Z\s]+$/.test(cleaned)) return false;
-  // At least 3 words
-  if (cleaned.split(" ").filter(w => w.length > 0).length < 3) return false;
+  // At least 2 words (more lenient)
+  if (cleaned.split(" ").filter(w => w.length > 0).length < 2) return false;
   return cleaned;
 }
 
