@@ -60,16 +60,24 @@ export async function handler(event, context) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
-
+  
   const apiKey = process.env.LLM_API_KEY;
-
+  
+  console.log('ENV CHECK:', { 
+    hasKey: !!apiKey, 
+    prefix: apiKey?.slice(0, 4),  // logs "gsk_" if Groq
+    length: apiKey?.length,
+    allEnvKeys: Object.keys(process.env).filter(k => k.includes('LLM') || k.includes('GROQ') || k.includes('API'))
+  });
+  
   if (!apiKey) {
-    console.error("LLM_API_KEY not set");
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Server not configured" }),
-    };
+    return { 
+      statusCode: 500, 
+      body: JSON.stringify({ error: "Server not configured" }) };
   }
+
+
+
 
   let phrase = null;
   let attempts = 0;
