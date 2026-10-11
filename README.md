@@ -89,9 +89,15 @@ I first used OpenCode to initialise the main _cipher-hangman.html_ file (with on
 
 I then generated a Menu page (_index.html_), before manually coding the _cipher-about_ page. The menu New Game was then refined to be scrollable, and to act as a cipher selector, although only Caesar cipher was implemented at the time. I then made the ciphers saved to local storage, before generating ROT13, Atbash, and A1Z26, and a _Cipher Tester_ button and modal in the main game file. Some more minor edits were added, before I implemented Binary and Morse. 
 
-Then, I added a Settings button in the main file as well as toggles for the active cipher (for testing) and the surprisal and entropy. 
+Then, I added a Settings button in the main file as well as toggles for the current cipher and active ciphers selected in the index (for testing) and the surprisal and entropy. 
 
-After pushing this to GitHub, I manually read through the CSS and combined all duplicates into _shared.css_. 
+After pushing this to GitHub, I manually read through the CSS and combined all duplicates into _shared.css_. I then added tooltips to the settings, so each toggle explains what it does, and added text beneath the letters to indicate both typing and clicking can work for the game. 
+
+In preparation for implementing the LLM code later, I added the GitHub repo to Netlify, and made an account on Groq to create an API key for the Netlify site that would allow it to actually work. 
+
+I then added a grid for Vigenère cipher within the *A↔1* modal, before actually generating code for that cipher and the Affine cipher, although I manually coded the formulas for the latter. Afterwards, I added a favicon and tweaked the .js file to optimise the prompt for new phrases. 
+
+I got two beta testers to repeatedly try my code throughout, and implemented their feedback to make my game more intuitive, user friendly, and fun. 
 
 ---
 
