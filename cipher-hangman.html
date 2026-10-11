@@ -857,9 +857,15 @@
                 <h1>CIPHER HANGMAN</h1>
                 <p class="subtitle">Decode the phrase before the hangman completes!</p>
             </div>
-            <button class="settings-btn" id="settingsBtn" aria-label="Settings">
-                <span class="settings-icon">⚙</span>
-            </button>
+            <div class="top-bar-right" style="display: flex; align-items: center; gap: 12px;">
+                <div class="streak-display" id="streakDisplay" style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #fafafa; border: 2px solid #e0e0e0; border-radius: 8px; min-width: 80px; justify-content: center;">
+                    <span style="font-size: 14px;">🔥</span>
+                    <span id="streakCount" style="font-family: 'Courier New', Courier, monospace; font-size: 16px; font-weight: 700; color: #2e7d32;">0</span>
+                </div>
+                <button class="settings-btn" id="settingsBtn" aria-label="Settings">
+                    <span class="settings-icon">⚙</span>
+                </button>
+            </div>
         </header>
 
         <div class="game-area">
@@ -1269,6 +1275,8 @@
         const modalNewGameBtn = document.getElementById('modalNewGameBtn');
         const modalMenuBtn = document.getElementById('modalMenuBtn');
         const settingsBtn = document.getElementById('settingsBtn');
+        const streakDisplay = document.getElementById('streakDisplay');
+        const streakCount = document.getElementById('streakCount');
         const settingsModalOverlay = document.getElementById('settingsModalOverlay');
         const showCipherToggle = document.getElementById('showCipherToggle');
         const showActiveCiphersToggle = document.getElementById('showActiveCiphersToggle');
@@ -1296,6 +1304,30 @@
         let showActiveCiphers = false; // Default to hiding active ciphers
         let showInfoPanel = true; // Default to showing info panel
         let useLLMPhrases = true; // Default to AI phrases
+
+        // Streak state (persisted in localStorage)
+        let winStreak = 0;
+
+        // Load streak from localStorage
+        function loadStreak() {
+            const saved = localStorage.getItem('cipherHangmanStreak');
+            if (saved) {
+                winStreak = parseInt(saved, 10) || 0;
+            }
+            updateStreakDisplay();
+        }
+
+        // Save streak to localStorage
+        function saveStreak() {
+            localStorage.setItem('cipherHangmanStreak', String(winStreak));
+        }
+
+        // Update streak display in top bar
+        function updateStreakDisplay() {
+            if (streakCount) {
+                streakCount.textContent = winStreak;
+            }
+        }
 
         // Vigenère key table
         const VIGENERE_KEYS = ['COVER', 'KEY', 'CODE', 'TOAST', 'SOUP', 'GREY', 'BLUE', 'RED', 'BLACK', 'TABLE', 'COLOUR'];
@@ -1958,7 +1990,10 @@
             
             if (allRevealed) {
                 gameOver = true;
-                showModal('WIN!', 'You decoded the phrase!', 'win', `Cipher: ${getCipherDisplay()}`);
+                winStreak++;
+                saveStreak();
+                updateStreakDisplay();
+                showModal('WIN!', 'You decoded the phrase!', 'win', `Cipher: ${getCipherDisplay()} | Streak: ${winStreak}`);
                 disableAllKeys();
             }
         }
@@ -1967,6 +2002,9 @@
         function checkLose() {
             if (wrongGuesses >= maxWrongGuesses) {
                 gameOver = true;
+                winStreak = 0;
+                saveStreak();
+                updateStreakDisplay();
                 // Reveal all letters
                 originalPhrase.split('').forEach((char, i) => {
                     if (char !== ' ') revealed[i] = true;
@@ -2379,6 +2417,9 @@
         // Initialize alphabet grid
         initAlphabetGrid();
         initAlphabetTabs();
+
+        // Load streak
+        loadStreak();
 
         // Helper to check if any modal is open
         function isAnyModalOpen() {
