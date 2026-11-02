@@ -20,6 +20,11 @@
  *   A phrase too short/long for the chosen difficulty is rejected and retried.
  * - explain: post-game explanation of the phrase's origin + entropy values
  *   (needs phrase, cipher, outcome, entropy, surprisal).
+ * - tutor: in-game decoding helper. A masked snapshot of the player's progress
+ *   (revealed letters, word lengths, cipher in use, guessed letters, lives,
+ *   entropy values) plus a short question and the last few chat turns are sent.
+ *   The model NEVER receives the hidden phrase, so it can teach cipher
+ *   strategy and information-theory concepts without spoiling the answer.
  *
  * Set environment variable LLM_API_KEY in Netlify dashboard (Groq API key)
  * Model: qwen/qwen3.8-27b (fast, free tier)
@@ -72,6 +77,29 @@ Rules:
 - Friendly, encouraging tone for NLP students
 - Do NOT contradict the given outcome (never claim the player won if they lost)
 - Return ONLY the explanation text, nothing else`;
+
+const TUTOR_SYSTEM_PROMPT = `You are a friendly decoding coach inside a Hangman game where phrases are encoded with classic ciphers (Caesar, ROT13, Atbash, A1Z26, Binary, Morse, Vigenere, Affine).
+You are given a masked snapshot of the player's progress: which letters are revealed, word lengths, the cipher in use, letters already guessed, lives left, and the phrase's Shannon entropy and average surprisal. You NEVER see the hidden phrase itself.
+Help the player decode the phrase THEMSELVES:
+- Explain how the current cipher works and how to attack it (letter frequency analysis, word lengths, common patterns).
+- Interpret what the entropy/surprisal values suggest about the letter mix.
+- Comment on the letters already guessed and suggest a sensible next move.
+- If a theme is given, describe kinds of well-known phrases that fit it, without claiming any specific one is the answer.
+Rules:
+- NEVER state, guess, or spell out the hidden phrase, and never claim certainty about letters you cannot know.
+- Answer in AT MOST 3 short sentences (max 60 words total).
+- PLAIN TEXT only: no markdown, no bullet points, no emojis.
+- Friendly, encouraging tone for NLP students.
+- Return ONLY your reply, nothing else`;
+
+// Slightly constrained decoding-helper calls: short, steady answers
+const TUTOR_CALL_OPTIONS = {
+  max_tokens: 150,
+  temperature: 0.6,
+  top_p: 0.9,
+  presence_penalty: 0.1,
+  frequency_penalty: 0.1,
+};
 
 // Canonical classics the LLM often mangles; used directly so they actually appear
 const CANONICAL_IDIOMS = [
@@ -218,6 +246,35 @@ function callGroqForExplanation(apiKey, { phrase, cipher, outcome, entropy, surp
     presence_penalty: 0.1,
     frequency_penalty: 0.1,
   });
+}
+
+// Sanitize free-text chat fields (helper questions, conversation memory, the
+// masked reveal pattern) so they can never inject prompt control characters;
+// keep letters, digits, natural question punctuation and the "_" mask marker.
+function sanitizeChatText(value, max) {
+  if (typeof value !== "string") return "";
+  return value.replace(/[^\p{L}\p{N}_. ,!?'()\-:/&]/gu, " ").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+function callGroqForTutor(apiKey, { cipher, theme, pattern, wordLengths, guessed, lives, entropy, surprisal, question, history }) {
+  const lines = [
+    `Cipher in use: ${cipher}`,
+    theme ? `Theme (the player picked it, they know this): ${theme}` : null,
+    wordLengths ? `Word lengths: ${wordLengths}` : null,
+    pattern ? `Reveal pattern (uppercase = revealed, _ = still hidden, " / " separates words): ${pattern}` : null,
+    guessed ? `Letters guessed so far: ${guessed}` : null,
+    `Lives left: ${lives}`,
+    entropy !== undefined ? `Shannon entropy of the phrase's letter distribution: ${Number(entropy).toFixed(2)} bits` : null,
+    surprisal !== undefined ? `Average surprisal per letter: ${Number(surprisal).toFixed(2)} bits` : null,
+  ].filter(Boolean).join("\n");
+
+  let userPrompt = lines;
+  if (history && history.length) {
+    userPrompt += "\n\nRecent conversation:\n" + history.join("\n");
+  }
+  userPrompt += `\n\nStudent's question: "${question}"`;
+
+  return callGroq(apiKey, TUTOR_SYSTEM_PROMPT, userPrompt, TUTOR_CALL_OPTIONS);
 }
 
 function validatePhrase(phrase, minLen = 10, maxLen = 70) {
@@ -409,6 +466,56 @@ export async function handler(event, context) {
     } catch (e) {
       console.error("Explain attempt failed:", e);
       return { statusCode: 502, body: JSON.stringify({ error: "Failed to generate explanation" }), headers: CORS_HEADERS };
+    }
+  }
+
+  // ---- Tutor mode: in-game LLM decoding helper (chat) ----
+  if (body.mode === "tutor") {
+    const question = sanitizeChatText(body.question, 300);
+    if (!question) {
+      return { statusCode: 400, body: JSON.stringify({ error: "Missing or invalid question" }) };
+    }
+
+    // Masked progress instead of the hidden phrase: the model can reason about
+    // the player's situation but can never leak the answer. Pattern, word
+    // lengths and guessed letters come from the client's own game state.
+    const lives = Number.isFinite(Number(body.lives))
+      ? Math.max(0, Math.min(20, Math.floor(Number(body.lives))))
+      : "unknown";
+
+    // Short rolling memory so follow-up questions keep context (last 6 turns)
+    const history = Array.isArray(body.history)
+      ? body.history
+          .filter(m => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+          .slice(-6)
+          .map(m => `${m.role === "user" ? "Student asked" : "Tutor said"}: ${sanitizeChatText(m.content, 200)}`)
+      : [];
+
+    try {
+      const raw = await callGroqForTutor(apiKey, {
+        cipher: sanitizeExplainText(body.cipher, 80) || "Unknown cipher",
+        theme: sanitizeChatText(body.theme, 20),
+        pattern: sanitizeChatText(body.pattern, 200),
+        wordLengths: sanitizeChatText(body.wordLengths, 60),
+        guessed: sanitizeChatText(body.guessed, 100),
+        lives,
+        entropy: body.entropy,
+        surprisal: body.surprisal,
+        question,
+        history,
+      });
+      const reply = raw ? raw.replace(/^["'\s]+|["'\s]+$/g, '') : "";
+      if (!reply || reply.length < 2 || reply.length > 600) {
+        return { statusCode: 502, body: JSON.stringify({ error: "Failed to generate valid reply" }), headers: CORS_HEADERS };
+      }
+      return {
+        statusCode: 200,
+        headers: { ...CORS_HEADERS, "Cache-Control": "no-cache, no-store, must-revalidate" },
+        body: JSON.stringify({ reply }),
+      };
+    } catch (e) {
+      console.error("Tutor attempt failed:", e);
+      return { statusCode: 502, body: JSON.stringify({ error: "Failed to generate reply" }), headers: CORS_HEADERS };
     }
   }
 

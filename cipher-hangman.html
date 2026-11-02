@@ -842,6 +842,80 @@
             color: #1a1a1a;
         }
 
+        /* AI Helper Chat */
+        .tutor-modal {
+            width: min(500px, 92vw);
+        }
+
+        .chat-messages {
+            height: 260px;
+            overflow-y: auto;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .chat-message {
+            max-width: 85%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            background: #2e7d32;
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.ai {
+            align-self: flex-start;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            color: #1a1a1a;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .chat-input-row input {
+            flex: 1;
+            padding: 9px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            background: #fafafa;
+            transition: border-color 0.15s;
+        }
+
+        .chat-input-row input:focus {
+            outline: none;
+            border-color: #2e7d32;
+            background: #fff;
+        }
+
+        .chat-hint {
+            font-size: 10px;
+            color: #888;
+            text-align: center;
+            font-style: italic;
+            margin-bottom: 4px;
+        }
+
         @media (max-width: 550px) {
             .tester-textareas {
                 grid-template-columns: 1fr;
@@ -879,6 +953,9 @@
                 </button>
                 <button class="toolbar-btn" id="testerToggleBtn" aria-label="Toggle cipher tester" title="Cipher Tester">
                     <span class="toolbar-icon">🧪</span>
+                </button>
+                <button class="toolbar-btn" id="tutorToggleBtn" aria-label="Open AI decode helper" title="AI Decode Helper">
+                    <span class="toolbar-icon">🤖</span>
                 </button>
             </aside>
 
@@ -1028,7 +1105,7 @@
                 </label>
             </div>
             <div class="setting-row">
-                <label class="toggle-label" title="Fetch new phrases and AI decode notes from the AI on each game">
+                <label class="toggle-label" title="Fetch new phrases, AI decode notes and the AI Decode Helper from the AI on each game">
                     <span class="toggle-text">Use AI Phrases</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="useLLMPhrasesToggle" checked>
@@ -1095,6 +1172,22 @@
             </div>
             <div class="modal-controls">
                 <button class="btn primary" id="testerCloseBtn">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Helper Modal Overlay -->
+    <div class="modal-overlay" id="tutorModalOverlay">
+        <div class="modal tutor-modal" id="tutorModal">
+            <h2>AI Decode Helper</h2>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-row">
+                <input type="text" id="chatInput" placeholder="Ask for decoding help..." maxlength="300">
+                <button class="btn primary" id="chatSendBtn">SEND</button>
+            </div>
+            <p class="chat-hint">The helper never sees the hidden phrase — it explains ciphers and entropy, and suggests decoding strategy. No spoilers.</p>
+            <div class="modal-controls">
+                <button class="btn primary" id="tutorCloseBtn">CLOSE</button>
             </div>
         </div>
     </div>
@@ -1298,6 +1391,12 @@
         const testerInput = document.getElementById('testerInput');
         const testerOutput = document.getElementById('testerOutput');
         const testerCloseBtn = document.getElementById('testerCloseBtn');
+        const tutorToggleBtn = document.getElementById('tutorToggleBtn');
+        const tutorModalOverlay = document.getElementById('tutorModalOverlay');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        const tutorCloseBtn = document.getElementById('tutorCloseBtn');
         const alphabetPanel = document.getElementById('alphabetPanel');
         const cipherListPanel = document.getElementById('cipherListPanel');
         const alphabetGrid = document.getElementById('alphabetGrid');
@@ -2135,6 +2234,9 @@
             drawHangman();
             renderPhrase();
             renderKeyboard();
+
+            // Fresh helper conversation for the new round
+            resetChat();
             
             // Restore button
             newGameBtn.disabled = false;
@@ -2330,6 +2432,7 @@
         });
         useLLMPhrasesToggle.addEventListener('change', (e) => {
             useLLMPhrases = e.target.checked;
+            updateTutorVisibility();
         });
 
         // Close settings modal when clicking overlay
@@ -2508,9 +2611,158 @@
             }
         });
 
+        // --- AI Decode Helper (in-game chat, gated by the Use AI Phrases toggle) ---
+        let chatHistory = []; // { role: 'user'|'assistant', content } — rolling memory for the tutor
+        let chatBusy = false;
+
+        // Show/hide the helper button based on the Use AI Phrases setting;
+        // the helper lives and dies with that toggle like the other AI features.
+        function updateTutorVisibility() {
+            if (tutorToggleBtn) {
+                tutorToggleBtn.style.display = useLLMPhrases ? '' : 'none';
+            }
+            if (!useLLMPhrases && tutorModalOverlay) {
+                tutorModalOverlay.className = 'modal-overlay';
+            }
+        }
+
+        // Masked snapshot of the player's progress sent to the tutor:
+        // revealed letters stay, hidden letters become _, " / " separates words.
+        // The hidden phrase itself is never sent, so the model cannot spoil it.
+        function buildTutorPattern() {
+            let pattern = '';
+            for (let i = 0; i < originalPhrase.length; i++) {
+                if (originalPhrase[i] === ' ') {
+                    pattern += ' / ';
+                } else {
+                    pattern += revealed[i] ? originalPhrase[i] : '_';
+                }
+            }
+            return pattern;
+        }
+
+        // Guessed-letters summary for the tutor prompt
+        function buildTutorGuessed() {
+            const correct = [];
+            const wrong = [];
+            usedLetters.forEach(letter => {
+                (originalPhrase.includes(letter) ? correct : wrong).push(letter);
+            });
+            let summary = '';
+            if (correct.length) summary += `correct: ${correct.join(' ')}`;
+            if (wrong.length) summary += `${summary ? '; ' : ''}wrong: ${wrong.join(' ')}`;
+            return summary || 'none yet';
+        }
+
+        // Theme from the menu picker (phrase options), falling back to the
+        // provenance stashed when the phrase was fetched.
+        function buildTutorTheme() {
+            try {
+                const opts = JSON.parse(sessionStorage.getItem('cipherHangmanPhraseOptions') || '{}');
+                if (['movie', 'idiom', 'song', 'book'].includes(opts.theme)) return opts.theme;
+            } catch (e) {}
+            return (lastPhraseMeta && lastPhraseMeta.theme) || null;
+        }
+
+        function appendChatMessage(cls, text) {
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-message ' + cls;
+            bubble.textContent = text;
+            chatMessages.appendChild(bubble);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return bubble;
+        }
+
+        function resetChat() {
+            if (!chatMessages) return;
+            chatHistory = [];
+            chatMessages.innerHTML = '';
+            const cipherName = currentCipher ? getCipherDisplay() : 'the cipher';
+            appendChatMessage('ai',
+                `New round! The phrase uses a ${cipherName}. Ask me how to attack it, ` +
+                `what the entropy values mean, or which letters to try next — ` +
+                `I can't see the hidden phrase, so no spoilers.`);
+        }
+
+        async function sendChat() {
+            if (!useLLMPhrases || chatBusy) return;
+            const question = (chatInput.value || '').trim();
+            if (!question) return;
+
+            chatBusy = true;
+            chatSendBtn.disabled = true;
+            chatInput.value = '';
+            appendChatMessage('user', question);
+            const typing = appendChatMessage('ai', '...');
+
+            try {
+                const response = await fetch('/.netlify/functions/generate-themed-phrase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mode: 'tutor',
+                        question: question.slice(0, 300),
+                        cipher: getCipherDisplay(),
+                        theme: buildTutorTheme(),
+                        pattern: buildTutorPattern(),
+                        wordLengths: originalPhrase.split(' ').map(w => w.length).join(' '),
+                        guessed: buildTutorGuessed(),
+                        lives: maxWrongGuesses - wrongGuesses,
+                        entropy: phraseEntropy,
+                        surprisal: phraseSurprisal / Math.max(1, originalPhrase.replace(/ /g, '').length),
+                        history: chatHistory.slice(-6),
+                    }),
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                if (!data.reply) throw new Error('Empty reply');
+                typing.textContent = data.reply;
+                chatHistory.push({ role: 'user', content: question });
+                chatHistory.push({ role: 'assistant', content: data.reply });
+                chatHistory = chatHistory.slice(-6);
+            } catch (e) {
+                console.log('AI helper request failed:', e);
+                typing.textContent = 'The AI helper is unavailable right now — try again in a moment.';
+            } finally {
+                chatBusy = false;
+                chatSendBtn.disabled = false;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                chatInput.focus();
+            }
+        }
+
+        function openTutorModal() {
+            tutorModalOverlay.className = 'modal-overlay show';
+            chatInput.focus();
+        }
+
+        function closeTutorModal() {
+            tutorModalOverlay.className = 'modal-overlay';
+        }
+
+        tutorToggleBtn.addEventListener('click', openTutorModal);
+        tutorCloseBtn.addEventListener('click', closeTutorModal);
+        chatSendBtn.addEventListener('click', sendChat);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendChat();
+            }
+        });
+
+        // Close AI helper modal when clicking overlay
+        tutorModalOverlay.addEventListener('click', (e) => {
+            if (e.target === tutorModalOverlay) {
+                closeTutorModal();
+            }
+        });
+
         // Initialize alphabet grid
         initAlphabetGrid();
         initAlphabetTabs();
+
+        // Sync the helper's visibility with the Use AI Phrases setting
+        updateTutorVisibility();
 
         // Load streak
         loadStreak();
@@ -2520,7 +2772,8 @@
             return (
                 modalOverlay.classList.contains('show') ||
                 settingsModalOverlay.classList.contains('show') ||
-                testerModalOverlay.classList.contains('show')
+                testerModalOverlay.classList.contains('show') ||
+                tutorModalOverlay.classList.contains('show')
             );
         }
 

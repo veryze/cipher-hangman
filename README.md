@@ -36,7 +36,7 @@ The format of this repo is:
 
 ---
 
-*generate-themed-phrase.js* is the project's only LLM endpoint. It serves two modes, chosen by the `mode` field in the POST body. 
+*generate-themed-phrase.js* is the project's only LLM endpoint. It serves three modes, chosen by the `mode` field in the POST body. 
 <br>
 In the default **`phrase`** mode it generates the short phrase used for the main Hangman game, following the theme and difficulty picked in the menu's New Game modal (all types / movie quotes / idioms / song lyrics (bands optionally customisable) / book titles, plus easy/normal/hard). The theme and difficulty are appended to the system prompt as THEME OVERRIDE and DIFFICULTY lines with format examples; missing or unrecognised values fall back to the default prompt. Difficulty is also enforced by length validation: phrases shorter than 25 characters are rejected for hard (aiming 30-60, rare letters encouraged) and longer than 40 are rejected for easy, so a normal-difficulty phrase won't be generated in hard mode. 
 <br>
@@ -68,6 +68,16 @@ Rules:
 - Do NOT contradict the given outcome (never claim the player won if they lost)
 - Return ONLY the explanation text, nothing else`;
 ```
+<br>
+When *mode* is set to **`tutor`** the endpoint powers the in-game **AI Decode Helper** chat (toolbar button 🤖). The player asks a question mid-round and the backend receives a **masked snapshot** of the game state only — revealed letters as-is, unrevealed letters as `_`, word lengths, the cipher in use, guessed letters, lives left, and the entropy/surprisal values — plus the question and the last few chat turns for context. The hidden phrase itself is never sent, so the model can explain the cipher, interpret the entropy values and suggest decoding strategy (letter frequency analysis, common patterns), but cannot spoil the answer. Replies are capped at three short sentences in plain text, and a match is limited via the same rate of validation as the other modes (invalid/empty replies return a 502, which the frontend shows as a friendly "unavailable" message).
+
+```
+const TUTOR_SYSTEM_PROMPT = `You are a friendly decoding coach inside a Hangman game where phrases are encoded with classic ciphers (Caesar, ROT13, Atbash, A1Z26, Binary, Morse, Vigenere, Affine).
+You are given a masked snapshot of the player's progress: which letters are revealed, word lengths, the cipher in use, letters already guessed, lives left, and the phrase's Shannon entropy and average surprisal. You NEVER see the hidden phrase itself.
+[...]
+- NEVER state, guess, or spell out the hidden phrase, and never claim certainty about letters you cannot know.
+[...]`
+```
 
 ---
 
@@ -79,9 +89,9 @@ Rules:
 
 ---
 
-*cipher-hangman.html* is the main game file, with the hangman game, enciphered phrase, and a list of letters marked as guessed or wrong. Above the enciphered phrase is a panel showing the surprisal (-log₂P), total Shannon entropy of the original phrase's letter distribution, the Shannon entropy of the remaining letters that updates in real time, the current cipher, the list of ciphers the user chose, as well as the key and formula for Vigenère and Affine cipher respectively. Below it is the new game and hint buttons. 
-To the right of the hangman game are three buttons that display modals - the first (A↔1) has one tab that displays the alphabet as well as each letter's index, which is useful for the Caesar, ROT13, Atbash, A1Z26, and binary ciphers, and a second tab with a grid of clickable letters for the Vigenère cipher. 
-The second button links to _cipher-info.html_ and shows a list of all ciphers, and if the current cipher button is toggled in settings, highlights the current cipher. The third modal is a tester for all the ciphers. 
+*cipher-hangman.html* is the main game file, with the hangman game, enciphered phrase, and a list of letters marked as guessed or wrong. Above the enciphered phrase is a panel showing the surprisal (-log₂P), total Shannon entropy of the original phrase's letter distribution, the Shannon entropy of the remaining letters that updates in real time, the current cipher, the list of ciphers the user chose, as well as the key and formula for Vigenère and Affine cipher respectively. Below it is the new game and hint buttons.
+To the right of the hangman game are four buttons that display modals - the first (A↔1) has one tab that displays the alphabet as well as each letter's index, which is useful for the Caesar, ROT13, Atbash, A1Z26, and binary ciphers, and a second tab with a grid of clickable letters for the Vigenère cipher. 
+The second button links to _cipher-info.html_ and shows a list of all ciphers, and if the current cipher button is toggled in settings, highlights the current cipher. The third modal is a tester for all the ciphers. The fourth (🤖) opens the **AI Decode Helper**, a chat where the player can ask for decoding help mid-round: how the current cipher works, what the entropy values mean, or which letters look promising. It resets with a fresh greeting every new round and is only available when *Use AI Phrases* is enabled in settings - when that toggle is off the button disappears entirely, matching the other AI features.
 The page also has a settings panel, containing four toggles - show cipher type, show active ciphers (i.e. those selected by the user in the menu), show info panel (the surprisal and entropy values), and use AI phrases (if toggled off, the offline phrase bank in the file will be used, and the post-round AI explanation described below is skipped). 
 If a hint is used or a wrong letter is keyed, the amount of lives the user has decreases by one and the hangman increments. Once six mistakes have been made, the user loses the game and a GAME OVER modal appears, along with the correct phrase, the cipher used, and the New Game/Menu buttons. If the answer is correct, the same modal appears, but without the phrase and with a green highlight instead of red. A streak that increments for every consecutive win was also implemented. On both game ends, an extra block (AI DECODE NOTES) appears beneath the cipher line and, once the LLM responds, displays a short explanation of the phrase's meaning/origin together with what the entropy and surprisal values say about how hard it was to decode. While waiting it shows 'AI is analysing the phrase...', and if the request fails it simply hides itself, leaving the modal otherwise untouched. 
 
@@ -128,6 +138,8 @@ I then added a grid for Vigenère cipher within the *A↔1* modal, before actual
 I then extended the existing Groq function with an explanation mode, so the game-end modal also displays AI decode notes about the phrase and its entropy values. 
 
 Different difficulty modes and themes were also added, to make the game more fun for users. 
+
+A chat-based AI Decode Helper (🤖 button, `tutor` mode on the endpoint) was later added so players can ask for decoding strategy mid-round; it receives only a masked view of the progress so it can teach but never spoil the answer, and it only appears while *Use AI Phrases* is enabled.
 
 I got two beta testers to repeatedly try my code throughout, and implemented their feedback to make my game more intuitive, user friendly, and fun. 
 
