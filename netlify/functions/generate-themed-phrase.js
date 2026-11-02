@@ -245,9 +245,12 @@ async function fetchTimedJson(url) {
 // Find a song by one of the user's custom bands via the suggest endpoint
 async function pickSongByBand(band) {
   const data = await fetchTimedJson(`${LYRICS_SUGGEST_API}${encodeURIComponent(band.trim())}`);
-  if (!data || !Array.isArray(data.results)) return null;
+  // lyrics.ovh suggest (Deezer proxy) returns { data: [...] }; accept legacy { results: [...] } too
+  const list = Array.isArray(data?.data) ? data.data
+    : Array.isArray(data?.results) ? data.results : null;
+  if (!list) return null;
   const bandNorm = band.trim().toLowerCase();
-  const matches = data.results.filter(r =>
+  const matches = list.filter(r =>
     r && r.artist && typeof r.artist.name === 'string' &&
     r.artist.name.toLowerCase().includes(bandNorm));
   if (!matches.length) return null;
