@@ -1,9 +1,17 @@
 /**
- * Netlify Function: Generate a new Hangman phrase using Groq LLM
- * 
- * Deploy: Connect repo to Netlify, it auto-detects netlify/functions/
+ * Netlify Function: Hangman LLM endpoint — themed phrase generation and
+ * post-game explanations using Groq
+ *
+ * Modes (via 'mode' field in the POST body, default 'phrase'):
+ * - phrase: generate a Hangman phrase following the theme/difficulty picked
+ *   in the menu (index.html): theme any|movie|proverb|idiom|song|book,
+ *   difficulty easy|normal|hard. Falls back to plain generation if the
+ *   values are missing/unrecognized.
+ * - explain: post-game explanation of the phrase's origin + entropy values
+ *   (needs phrase, cipher, outcome, entropy, surprisal).
+ *
  * Set environment variable LLM_API_KEY in Netlify dashboard (Groq API key)
- * Model: qwen/qwen3-27b (fast, free tier)
+ * Model: qwen/qwen3.8-27b (fast, free tier)
  */
 
 const SYSTEM_PROMPT = `Generate ONE short, recognizable English phrase for Hangman.
@@ -14,6 +22,28 @@ Requirements:
 - NO invented phrases, NO obscure references
 - ONLY uppercase letters A-Z and spaces (NO punctuation, numbers, special chars)
 - Return ONLY the phrase, nothing else`;
+
+// Optional constraints appended to the system prompt
+const THEME_RULES = {
+  any: "",
+  movie: "THEME OVERRIDE: the phrase MUST be a well-known MOVIE QUOTE (e.g. from a famous film).",
+  proverb: "THEME OVERRIDE: the phrase MUST be a well-known PROVERB or traditional saying.",
+  idiom: "THEME OVERRIDE: the phrase MUST be a real, established English IDIOM (e.g. PIECE OF CAKE).",
+  song: "THEME OVERRIDE: the phrase MUST be a well-known SONG LYRIC from a famous song (one well-known line only).",
+  book: "THEME OVERRIDE: the phrase MUST be a well-known BOOK TITLE.",
+};
+
+const DIFFICULTY_RULES = {
+  normal: "",
+  easy: "DIFFICULTY EASY: prefer 15-30 characters overall; pick a very common, instantly recognizable phrase whose words repeat common letters (E, T, A, O) often.",
+  hard: "DIFFICULTY HARD: prefer 30-60 characters overall; pick a phrase with a more unusual letter distribution - rare letters like J, K, Q, X, Z are welcome, and avoid phrases where the same common letter repeats many times.",
+};
+
+function buildPhraseSystemPrompt(theme, difficulty) {
+  const extras = [THEME_RULES[theme] || "", DIFFICULTY_RULES[difficulty] || ""].filter(Boolean);
+  if (!extras.length) return SYSTEM_PROMPT;
+  return SYSTEM_PROMPT + "\n" + extras.join("\n");
+}
 
 const EXPLAIN_SYSTEM_PROMPT = `You are a friendly teacher explaining a finished round of a Hangman + cipher decoding game used to teach information theory.
 You are given the English phrase, the cipher type used, whether the player won or lost, and the phrase's Shannon entropy and average surprisal in bits.
@@ -56,12 +86,13 @@ function callGroq(apiKey, systemPrompt, userPrompt, options = {}) {
   });
 }
 
-function callGroqForPhrase(apiKey) {
+function callGroqForPhrase(apiKey, theme, difficulty) {
   // Add random seed to prompt for variety
   const seed = Math.random().toString(36).substring(7);
-  const userPrompt = `Give me one phrase (variation: ${seed}):`;
+  const themeLabel = theme === "any" ? "any-theme" : theme;
+  const userPrompt = `Give me one ${themeLabel} phrase, difficulty: ${difficulty} (variation: ${seed}):`;
 
-  return callGroq(apiKey, SYSTEM_PROMPT, userPrompt, {
+  return callGroq(apiKey, buildPhraseSystemPrompt(theme, difficulty), userPrompt, {
     max_tokens: 64,
     temperature: 0.9,
     top_p: 0.9,
@@ -105,29 +136,27 @@ export async function handler(event, context) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
-  
+
   const apiKey = process.env.LLM_API_KEY;
-  
-  console.log('ENV CHECK:', { 
-    hasKey: !!apiKey, 
-    prefix: apiKey?.slice(0, 4),  // logs "gsk_" if Groq
-    length: apiKey?.length,
-    allEnvKeys: Object.keys(process.env).filter(k => k.includes('LLM') || k.includes('GROQ') || k.includes('API'))
-  });
-  
+
   if (!apiKey) {
-    return { 
-      statusCode: 500, 
-      body: JSON.stringify({ error: "Server not configured" }) };
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Server not configured" }),
+    };
   }
 
-  // Parse request body (optional; used to request explain mode)
+  // Parse request body (optional)
   let body = {};
   try {
     if (event.body) body = JSON.parse(event.body);
   } catch (e) {
-    // Malformed body falls back to default phrase mode
+    // Malformed body falls back to defaults
   }
+
+  // Ignore unrecognized values (same fallbacks as the frontend)
+  const theme = THEME_RULES[body.theme] !== undefined ? body.theme : "any";
+  const difficulty = DIFFICULTY_RULES[body.difficulty] !== undefined ? body.difficulty : "normal";
 
   const CORS_HEADERS = {
     "Content-Type": "application/json",
@@ -166,7 +195,7 @@ export async function handler(event, context) {
     }
   }
 
-  // ---- Default: phrase mode (existing behaviour) ----
+  // ---- Default: phrase mode ----
   let phrase = null;
   let attempts = 0;
   const maxAttempts = 3;
@@ -174,7 +203,7 @@ export async function handler(event, context) {
   while (!phrase && attempts < maxAttempts) {
     attempts++;
     try {
-      const raw = await callGroqForPhrase(apiKey);
+      const raw = await callGroqForPhrase(apiKey, theme, difficulty);
       phrase = validatePhrase(raw);
       if (!phrase) console.log(`Attempt ${attempts}: Invalid phrase:`, raw);
     } catch (e) {
@@ -198,6 +227,6 @@ export async function handler(event, context) {
       "Pragma": "no-cache",
       "Expires": "0",
     },
-    body: JSON.stringify({ phrase }),
+    body: JSON.stringify({ phrase, theme, difficulty }),
   };
 }

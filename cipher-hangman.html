@@ -2141,27 +2141,42 @@
         }
 
         // Fetch a new phrase from the LLM API
-        async function fetchLLMPhrase() {
-            if (!useLLMPhrases) return null;
-            
+        async function fetchPhraseFrom(payload) {
             try {
-                const response = await fetch('/.netlify/functions/generate-phrase', {
+                const response = await fetch('/.netlify/functions/generate-themed-phrase', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'Cache-Control': 'no-cache, no-store, must-revalidate',
                         'Pragma': 'no-cache',
                     },
+                    body: JSON.stringify(payload),
                 });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 return data.phrase || null;
             } catch (e) {
-                console.log('LLM phrase fetch failed, using local phrases:', e);
+                console.log('Phrase fetch failed, using local phrases:', e);
                 return null;
             }
         }
 
+        async function fetchLLMPhrase() {
+            if (!useLLMPhrases) return null;
+
+            // Phrase theme/difficulty selected in the menu (set by index.html)
+            let theme = 'any';
+            let difficulty = 'normal';
+            try {
+                const opts = JSON.parse(sessionStorage.getItem('cipherHangmanPhraseOptions') || '{}');
+                if (['any', 'movie', 'proverb', 'idiom', 'song', 'book'].includes(opts.theme)) theme = opts.theme;
+                if (['easy', 'normal', 'hard'].includes(opts.difficulty)) difficulty = opts.difficulty;
+            } catch (e) {
+                console.warn('Failed to read phrase options, using defaults');
+            }
+
+            return await fetchPhraseFrom({ mode: 'phrase', theme, difficulty });
+        }
         // Fetch a post-game explanation from the LLM: phrase origin + entropy interpretation
         let explanationToken = 0; // increments each fetch so stale responses can't overwrite a newer game's modal
         async function fetchExplanation(outcome) {
@@ -2174,7 +2189,7 @@
             explainEl.textContent = 'AI is analyzing the phrase...';
 
             try {
-                const response = await fetch('/.netlify/functions/generate-phrase', {
+                const response = await fetch('/.netlify/functions/generate-themed-phrase', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

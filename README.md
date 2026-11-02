@@ -19,7 +19,7 @@ The format of this repo is:
   - generate-phrase.md
 - netlify
   - functions
-    - generate-phrase.js
+    - generate-themed-phrase.js
 - src
   - shared.css
 - cipher-about.html
@@ -32,11 +32,12 @@ The format of this repo is:
 
 ---
 
-*generate-phrase.md* is a SKILLS.md file that instructs an LLM to perform a set of actions, and gives clear parameters (in this one, the parameters include variables such as the minimum length of the generated response, as well as its format (integer)). It essentially helps define the response called by *generate-phrase.js*. Although it isn't directly called within my game, it was helpful for debugging the prompt when used with OpenCode. 
+*generate-phrase.md* is a SKILLS.md file that instructs an LLM to perform a set of actions, and gives clear parameters (in this one, the parameters include variables such as the minimum length of the generated response, as well as its format (integer)). It essentially helps define the response called by *generate-themed-phrase.js* (the file kept its original generate-phrase name). Although it isn't directly called within my game, it was helpful for debugging the prompt when used with OpenCode. 
 
 ---
 
-*generate-phrase.js* is a JavaScript file that calls Groq and is used for two things: generating a short phrase to be used for the main Hangman game, and generating a short explanation shown in the game-end modal. The mode is chosen by the `mode` field in the POST body, with phrase as the default. 
+*generate-themed-phrase.js* is the project's only LLM endpoint (it replaced generate-phrase.js, which was removed). It serves two modes, chosen by the `mode` field in the POST body. 
+In the default *phrase* mode it calls Groq and generates the short phrase used for the main Hangman game, following the theme and difficulty picked in the menu's New Game modal (all types / movie quotes / proverbs / idioms / song lyrics / book titles, plus easy/normal/hard). The values arrive in the POST body and are appended to the system prompt as THEME OVERRIDE and DIFFICULTY lines; missing or unrecognized values fall back to the default prompt. 
 ```
 const SYSTEM_PROMPT = `Generate ONE short, recognizable English phrase for Hangman.
 Requirements:
@@ -90,7 +91,7 @@ If a hint is used or a wrong letter is keyed, the amount of lives the user has d
 
 ---
 
-*index.html* is the menu, as well as the landing page. From here, the user can go to the main game, the About page, or the cipher info page. When *New Game* is clicked, a scrollable modal appears, allowing the user to select the types of ciphers they want to see. The checked ciphers are also cached in local storage, and accessed in the main game as *enabledCiphers*. 
+*index.html* is the menu, as well as the landing page. From here, the user can go to the main game, the About page, or the cipher info page. When *New Game* is clicked, a scrollable modal appears, allowing the user to select the types of ciphers they want to see, along with the phrase theme and difficulty used for AI phrase generation (kept in local storage as *phrasePrefs*). The checked ciphers are cached in local storage, and accessed in the main game as *enabledCiphers*; the theme/difficulty are passed as *cipherHangmanPhraseOptions*. 
 
 ---
 

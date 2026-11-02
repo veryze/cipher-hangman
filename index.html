@@ -254,6 +254,20 @@
             cursor: pointer;
         }
 
+        .theme-toggle-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .cipher-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #1a1a1a;
+            cursor: pointer;
+        }
+
         .modal-controls {
             display: flex;
             gap: 12px;
@@ -305,7 +319,8 @@
             .modal {
                 padding: 20px;
             }
-            .cipher-toggle-group {
+            .cipher-toggle-group,
+            .theme-toggle-group {
                 grid-template-columns: 1fr;
             }
         }
@@ -419,12 +434,79 @@
                 </div>
             </div>
 
+            <div class="theme-toggle-group">
+                <div class="cipher-category">
+                    <h3>Phrase Theme <span class="cipher-desc">(AI phrases only)</span></h3>
+                    
+                    <div class="cipher-option">
+                        <label>
+                            <input type="radio" name="phraseTheme" value="any" checked>
+                            <span>All types <span class="cipher-desc">(mix of everything)</span></span>
+                        </label>
+                    </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="radio" name="phraseTheme" value="movie">
+                            <span>Movie quotes</span>
+                        </label>
+                    </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="radio" name="phraseTheme" value="proverb">
+                            <span>Proverbs <span class="cipher-desc">(traditional sayings)</span></span>
+                        </label>
+                    </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="radio" name="phraseTheme" value="idiom">
+                            <span>Idioms</span>
+                        </label>
+                    </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="radio" name="phraseTheme" value="song">
+                            <span>Song lyrics</span>
+                        </label>
+                    </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="radio" name="phraseTheme" value="book">
+                            <span>Book titles</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="cipher-category">
+                    <h3>Phrase Difficulty <span class="cipher-desc">(AI phrases only)</span></h3>
+                    
+                    <div class="cipher-option">
+                        <label>
+                            <input type="radio" name="phraseDifficulty" value="easy">
+                            <span>Easy <span class="cipher-desc">(short, very common)</span></span>
+                        </label>
+                    </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="radio" name="phraseDifficulty" value="normal" checked>
+                            <span>Normal</span>
+                        </label>
+                    </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="radio" name="phraseDifficulty" value="hard">
+                            <span>Hard <span class="cipher-desc">(longer, unusual letters)</span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <div class="modal-controls">
                 <button class="btn" id="newGameCancelBtn">CANCEL</button>
                 <button class="btn primary" id="newGameStartBtn">START GAME</button>
                 <button class="btn" id="resetPrefsBtn" style="margin-left: auto;">RESET TO DEFAULTS</button>
             </div>
         </div>
+    </div>
 
     <script>
         // Cipher selection state (persisted in localStorage)
@@ -438,6 +520,39 @@
             vigenere: true,
             affine: true
         };
+
+        // Phrase theme/difficulty preferences (persisted in localStorage)
+        let phrasePrefs = { theme: 'any', difficulty: 'normal' };
+        const THEME_VALUES = ['any', 'movie', 'proverb', 'idiom', 'song', 'book'];
+        const DIFFICULTY_VALUES = ['easy', 'normal', 'hard'];
+
+        // Load saved phrase preferences
+        function loadPhrasePrefs() {
+            const saved = localStorage.getItem('cipherHangmanPhrasePrefs');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (THEME_VALUES.includes(parsed.theme)) phrasePrefs.theme = parsed.theme;
+                    if (DIFFICULTY_VALUES.includes(parsed.difficulty)) phrasePrefs.difficulty = parsed.difficulty;
+                } catch (e) {
+                    console.warn('Failed to parse saved phrase preferences');
+                }
+            }
+            updatePhraseRadios();
+        }
+
+        function savePhrasePrefs() {
+            localStorage.setItem('cipherHangmanPhrasePrefs', JSON.stringify(phrasePrefs));
+        }
+
+        function updatePhraseRadios() {
+            document.querySelectorAll('input[name="phraseTheme"]').forEach(radio => {
+                radio.checked = radio.value === phrasePrefs.theme;
+            });
+            document.querySelectorAll('input[name="phraseDifficulty"]').forEach(radio => {
+                radio.checked = radio.value === phrasePrefs.difficulty;
+            });
+        }
 
         // Load saved preferences
         function loadCipherPrefs() {
@@ -517,16 +632,33 @@
             });
         });
 
-        // Start game with selected ciphers
+        // Phrase theme radio buttons
+        document.querySelectorAll('input[name="phraseTheme"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) phrasePrefs.theme = e.target.value;
+            });
+        });
+
+        // Phrase difficulty radio buttons
+        document.querySelectorAll('input[name="phraseDifficulty"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) phrasePrefs.difficulty = e.target.value;
+            });
+        });
+
+        // Start game with selected ciphers and phrase options
         newGameStartBtn.addEventListener('click', () => {
             const selected = Object.entries(enabledCiphers).filter(([_, v]) => v).map(([k]) => k);
             if (selected.length === 0) return;
             
             saveCipherPrefs();
+            savePhrasePrefs();
             closeNewGameModal();
             
             // Pass selected ciphers to game via sessionStorage
             sessionStorage.setItem('cipherHangmanSelectedCiphers', JSON.stringify(selected));
+            // Pass phrase theme/difficulty to game via sessionStorage
+            sessionStorage.setItem('cipherHangmanPhraseOptions', JSON.stringify(phrasePrefs));
             window.location.href = 'cipher-hangman.html';
         });
 
@@ -552,12 +684,16 @@
                 vigenere: true,
                 affine: true
             };
+            phrasePrefs = { theme: 'any', difficulty: 'normal' };
             saveCipherPrefs();
+            savePhrasePrefs();
             updateCheckboxes();
+            updatePhraseRadios();
         });
 
         // Initialize
         loadCipherPrefs();
+        loadPhrasePrefs();
     </script>
 </body>
 </html>
