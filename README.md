@@ -68,8 +68,8 @@ Rules:
 - Do NOT contradict the given outcome (never claim the player won if they lost)
 - Return ONLY the explanation text, nothing else`;
 ```
-<br>
-When *mode* is set to **`tutor`** the endpoint powers the in-game **AI Decode Helper** chat (toolbar button 🤖). The player asks a question mid-round and the backend receives a **masked snapshot** of the game state only — revealed letters as-is, unrevealed letters as `_`, word lengths, the cipher in use, guessed letters, lives left, and the entropy/surprisal values — plus the question and the last few chat turns for context. The hidden phrase itself is never sent, so the model can explain the cipher, interpret the entropy values and suggest decoding strategy (letter frequency analysis, common patterns), but cannot spoil the answer. Replies are capped at three short sentences in plain text, and a match is limited via the same rate of validation as the other modes (invalid/empty replies return a 502, which the frontend shows as a friendly "unavailable" message).
+
+When *mode* is set to **`tutor`** the endpoint powers the in-game **AI Decode Helper** chat (toolbar button 🤖). The player asks a question mid-round and the backend receives a **masked snapshot** of the game state only - revealed letters as-is, unrevealed letters as `_`, word lengths, the cipher in use, guessed letters, lives left, and the entropy/surprisal values — plus the question and the last few chat turns for context. The hidden phrase itself is never sent, so the model can explain the cipher, interpret the entropy values and suggest decoding strategy (letter frequency analysis, common patterns), but cannot spoil the answer. Replies are capped at three short sentences in plain text, and a match is limited via the same rate of validation as the other modes (invalid/empty replies return a 502, which the frontend shows as a friendly "unavailable" message).
 
 ```
 const TUTOR_SYSTEM_PROMPT = `You are a friendly decoding coach inside a Hangman game where phrases are encoded with classic ciphers (Caesar, ROT13, Atbash, A1Z26, Binary, Morse, Vigenere, Affine).
