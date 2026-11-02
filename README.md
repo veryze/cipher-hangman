@@ -2,7 +2,7 @@
 
 This project was created for the course LNG302 Natural Language Processing at the ICU as a way to incorporate NLPs, display and explain entropy and surprisal in the context of bits, and to teach different ciphers. This was inspired by how intertwined linguistics, ciphers, and programming were throughout the last century.
 
-The eight ciphers (currently) available are: Caesar (±1–26), ROT13, Atbash, A1Z26, Binary (5-bit), Morse, Vigenère (polyalphabetic, 11 keys), and Affine (ax+b mod 26, 12 key pairs). 
+The eight ciphers available are: Caesar (±1–26), ROT13, Atbash, A1Z26, Binary (5-bit), Morse, Vigenère (polyalphabetic, 11 keys), and Affine (ax+b mod 26, 12 key pairs). 
 
 This was created using OpenCode with the LLM functions deployed via Netlify, and refined by me. Netlify uses a Groq API and the model qwen/qwen3.8-27b generates the phrases, as well as a short explanation of each phrase and its entropy values shown after every round. The README, and some of the code, was entirely written by me. 
 
@@ -15,7 +15,7 @@ The site can be accessed at [https://hangman-cipher.netlify.app](https://hangman
 ## Overview
 
 The format of this repo is: 
-- .opencode/skill
+- .opencode/skills
   - generate-phrase.md
 - netlify
   - functions
@@ -32,12 +32,13 @@ The format of this repo is:
 
 ---
 
-*generate-phrase.md* is a SKILLS.md file that instructs an LLM to perform a set of actions, and gives clear parameters (in this one, the parameters include variables such as the minimum length of the generated response, as well as its format (integer)). It essentially helps define the response called by *generate-themed-phrase.js* (the file kept its original generate-phrase name). Although it isn't directly called within my game, it was helpful for debugging the prompt when used with OpenCode. 
+*generate-phrase.md* is a SKILLS.md file that instructs an LLM to perform a set of actions, and gives clear parameters (in this one, the parameters include variables such as the minimum length of the generated response, as well as its format (integer)). It essentially helps define the response called by *generate-themed-phrase.js* in `netlify/functions`. Although it isn't directly called within my game, it was helpful for debugging the prompt when used with OpenCode. 
 
 ---
 
 *generate-themed-phrase.js* is the project's only LLM endpoint. It serves two modes, chosen by the `mode` field in the POST body. 
-In the default **`phrase`** mode it generates the short phrase used for the main Hangman game, following the theme and difficulty picked in the menu's New Game modal (all types / movie quotes / idioms / song lyrics / book titles, plus easy/normal/hard). The theme and difficulty are appended to the system prompt as THEME OVERRIDE and DIFFICULTY lines with format examples; missing or unrecognized values fall back to the default prompt. Difficulty is also enforced by length validation: phrases shorter than 25 characters are rejected for hard (aiming 30-60, rare letters encouraged) and longer than 40 are rejected for easy, so a normal-difficulty phrase won't be generated in hard mode. 
+<br>
+In the default **`phrase`** mode it generates the short phrase used for the main Hangman game, following the theme and difficulty picked in the menu's New Game modal (all types / movie quotes / idioms / song lyrics (bands optionally customisable) / book titles, plus easy/normal/hard). The theme and difficulty are appended to the system prompt as THEME OVERRIDE and DIFFICULTY lines with format examples; missing or unrecognised values fall back to the default prompt. Difficulty is also enforced by length validation: phrases shorter than 25 characters are rejected for hard (aiming 30-60, rare letters encouraged) and longer than 40 are rejected for easy, so a normal-difficulty phrase won't be generated in hard mode. 
 <br>
 Per-theme extras: 
 - song lyrics are not generated at all, and instead fetched from the free lyrics.ovh website (randomly chosen from a list of ~20 well-known songs, validated and de-duplicated, 8s timeout, with the LLM only as a fallback if the site is unreachable). When Song theme is selected, the menu also offers an optional *Use custom bands* checkbox with a 1-2 line textbox for band names; lyric lines are then taken from songs by those bands (via the suggest endpoint) as snippets of up to two consecutive lines, and the difficulty choice is ignored for this path. 
@@ -82,7 +83,7 @@ Rules:
 To the right of the hangman game are three buttons that display modals - the first (A↔1) has one tab that displays the alphabet as well as each letter's index, which is useful for the Caesar, ROT13, Atbash, A1Z26, and binary ciphers, and a second tab with a grid of clickable letters for the Vigenère cipher. 
 The second button links to _cipher-info.html_ and shows a list of all ciphers, and if the current cipher button is toggled in settings, highlights the current cipher. The third modal is a tester for all the ciphers. 
 The page also has a settings panel, containing four toggles - show cipher type, show active ciphers (i.e. those selected by the user in the menu), show info panel (the surprisal and entropy values), and use AI phrases (if toggled off, the offline phrase bank in the file will be used, and the post-round AI explanation described below is skipped). 
-If a hint is used or a wrong letter is keyed, the amount of lives the user has decreases by one and the hangman increments. Once six mistakes have been made, the user loses the game and a GAME OVER modal appears, along with the correct phrase, the cipher used, and the New Game/Menu buttons. If the answer is correct, the same modal appears, but without the phrase and with a green highlight instead of red. A streak that increments for every consecutive win was also implemented. On both game ends, an extra block (AI DECODE NOTES) appears beneath the cipher line and, once the LLM responds, displays a short explanation of the phrase's meaning/origin together with what the entropy and surprisal values say about how hard it was to decode. While waiting it shows 'AI is analyzing the phrase...', and if the request fails it simply hides itself, leaving the modal otherwise untouched. 
+If a hint is used or a wrong letter is keyed, the amount of lives the user has decreases by one and the hangman increments. Once six mistakes have been made, the user loses the game and a GAME OVER modal appears, along with the correct phrase, the cipher used, and the New Game/Menu buttons. If the answer is correct, the same modal appears, but without the phrase and with a green highlight instead of red. A streak that increments for every consecutive win was also implemented. On both game ends, an extra block (AI DECODE NOTES) appears beneath the cipher line and, once the LLM responds, displays a short explanation of the phrase's meaning/origin together with what the entropy and surprisal values say about how hard it was to decode. While waiting it shows 'AI is analysing the phrase...', and if the request fails it simply hides itself, leaving the modal otherwise untouched. 
 
 ---
 
@@ -126,6 +127,8 @@ I then added a grid for Vigenère cipher within the *A↔1* modal, before actual
 
 I then extended the existing Groq function with an explanation mode, so the game-end modal also displays AI decode notes about the phrase and its entropy values. 
 
+Different difficulty modes and themes were also added, to make the game more fun for users. 
+
 I got two beta testers to repeatedly try my code throughout, and implemented their feedback to make my game more intuitive, user friendly, and fun. 
 
 ---
@@ -152,7 +155,7 @@ I got two beta testers to repeatedly try my code throughout, and implemented the
 - The temperature was too high (made up idioms)
 - The highlighting in the Vigenère cipher grid didn't remain when the letter was clicked and the mouse moved away
 - The Netlify logo covered the hint text on the Vigenère cipher grid
-- AI LLM implementation was lacking - improved by adding post-game explanations.
+- AI LLM implementation was lacking - improved by adding post-game explanations and a theme picker
 
 
 <!--- https://app.netlify.com/projects/hangmancipherfunc/overview --->
