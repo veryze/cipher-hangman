@@ -268,6 +268,58 @@
             cursor: pointer;
         }
 
+        /* Custom bands (Song theme) */
+        .custom-bands-row {
+            padding: 10px 12px;
+            margin-top: 8px;
+            background: #f5f5f5;
+            border: 1px dashed #ccc;
+            border-radius: 6px;
+        }
+
+        .custom-bands-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .custom-bands-toggle input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #1a1a1a;
+            cursor: pointer;
+        }
+
+        #customBandsInput {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 13px;
+            color: #333;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        #customBandsInput:focus {
+            outline: none;
+            border-color: #1a1a1a;
+        }
+
+        #customBandsInput::placeholder {
+            color: #999;
+        }
+
+        .cipher-option label.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
         .modal-controls {
             display: flex;
             gap: 12px;
@@ -462,6 +514,13 @@
                             <span>Song lyrics</span>
                         </label>
                     </div>
+                    <div class="custom-bands-row" id="customBandsRow" style="display: none;">
+                        <label class="custom-bands-toggle">
+                            <input type="checkbox" id="useCustomBands">
+                            <span>Use custom bands <span class="cipher-desc">(difficulty is ignored)</span></span>
+                        </label>
+                        <textarea id="customBandsInput" rows="2" maxlength="150" placeholder="Comma-separated, e.g. The Beatles, Queen, Fleetwood Mac" style="display: none;"></textarea>
+                    </div>
                     <div class="cipher-option">
                         <label>
                             <input type="radio" name="phraseTheme" value="book">
@@ -516,7 +575,7 @@
         };
 
         // Phrase theme/difficulty preferences (persisted in localStorage)
-        let phrasePrefs = { theme: 'any', difficulty: 'normal' };
+        let phrasePrefs = { theme: 'any', difficulty: 'normal', customBands: { enabled: false, list: '' } };
         const THEME_VALUES = ['any', 'movie', 'idiom', 'song', 'book'];
         const DIFFICULTY_VALUES = ['easy', 'normal', 'hard'];
 
@@ -528,15 +587,30 @@
                     const parsed = JSON.parse(saved);
                     if (THEME_VALUES.includes(parsed.theme)) phrasePrefs.theme = parsed.theme;
                     if (DIFFICULTY_VALUES.includes(parsed.difficulty)) phrasePrefs.difficulty = parsed.difficulty;
+                    if (parsed.customBands && typeof parsed.customBands === 'object') {
+                        phrasePrefs.customBands.enabled = parsed.customBands.enabled === true;
+                        if (typeof parsed.customBands.list === 'string') {
+                            phrasePrefs.customBands.list = parsed.customBands.list.slice(0, 150);
+                        }
+                    }
                 } catch (e) {
                     console.warn('Failed to parse saved phrase preferences');
                 }
             }
             updatePhraseRadios();
+            updateCustomBandsUI();
         }
 
         function savePhrasePrefs() {
-            localStorage.setItem('cipherHangmanPhrasePrefs', JSON.stringify(phrasePrefs));
+            const toSave = {
+                theme: phrasePrefs.theme,
+                difficulty: phrasePrefs.difficulty,
+                customBands: {
+                    enabled: phrasePrefs.customBands.enabled,
+                    list: phrasePrefs.customBands.list.slice(0, 150),
+                },
+            };
+            localStorage.setItem('cipherHangmanPhrasePrefs', JSON.stringify(toSave));
         }
 
         function updatePhraseRadios() {
@@ -545,6 +619,27 @@
             });
             document.querySelectorAll('input[name="phraseDifficulty"]').forEach(radio => {
                 radio.checked = radio.value === phrasePrefs.difficulty;
+            });
+        }
+
+        // Show/hide the custom bands block and sync difficulty availability
+        function updateCustomBandsUI() {
+            const row = document.getElementById('customBandsRow');
+            const box = document.getElementById('useCustomBands');
+            const input = document.getElementById('customBandsInput');
+            if (!row || !box || !input) return;
+
+            const isSong = phrasePrefs.theme === 'song';
+            row.style.display = isSong ? 'block' : 'none';
+            box.checked = isSong && phrasePrefs.customBands.enabled;
+            input.style.display = (isSong && phrasePrefs.customBands.enabled) ? 'block' : 'none';
+            input.value = phrasePrefs.customBands.list;
+
+            // Difficulty is ignored when custom bands are used
+            const ignoreDifficulty = isSong && phrasePrefs.customBands.enabled;
+            document.querySelectorAll('input[name="phraseDifficulty"]').forEach(radio => {
+                radio.disabled = ignoreDifficulty;
+                radio.parentElement.classList.toggle('disabled', ignoreDifficulty);
             });
         }
 
@@ -629,15 +724,34 @@
         // Phrase theme radio buttons
         document.querySelectorAll('input[name="phraseTheme"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
-                if (e.target.checked) phrasePrefs.theme = e.target.value;
+                if (e.target.checked) {
+                    phrasePrefs.theme = e.target.value;
+                    updateCustomBandsUI();
+                }
             });
         });
 
         // Phrase difficulty radio buttons
         document.querySelectorAll('input[name="phraseDifficulty"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
-                if (e.target.checked) phrasePrefs.difficulty = e.target.value;
+                if (e.target.checked && !e.target.disabled) phrasePrefs.difficulty = e.target.value;
             });
+        });
+
+        // Custom bands (Song theme): checkbox and band list
+        document.getElementById('useCustomBands').addEventListener('change', (e) => {
+            phrasePrefs.customBands.enabled = e.target.checked;
+            if (!e.target.checked) {
+                // Leaving the list intact but disabled (so unchecking keeps what they typed)
+                updateCustomBandsUI();
+            } else {
+                phrasePrefs.customBands.list = document.getElementById('customBandsInput').value;
+                updateCustomBandsUI();
+                document.getElementById('customBandsInput').focus();
+            }
+        });
+        document.getElementById('customBandsInput').addEventListener('input', (e) => {
+            phrasePrefs.customBands.list = e.target.value;
         });
 
         // Start game with selected ciphers and phrase options
@@ -651,7 +765,7 @@
             
             // Pass selected ciphers to game via sessionStorage
             sessionStorage.setItem('cipherHangmanSelectedCiphers', JSON.stringify(selected));
-            // Pass phrase theme/difficulty to game via sessionStorage
+            // Pass phrase theme/difficulty (+ custom bands) to game via sessionStorage
             sessionStorage.setItem('cipherHangmanPhraseOptions', JSON.stringify(phrasePrefs));
             window.location.href = 'cipher-hangman.html';
         });
@@ -678,11 +792,12 @@
                 vigenere: true,
                 affine: true
             };
-            phrasePrefs = { theme: 'any', difficulty: 'normal' };
+            phrasePrefs = { theme: 'any', difficulty: 'normal', customBands: { enabled: false, list: '' } };
             saveCipherPrefs();
             savePhrasePrefs();
             updateCheckboxes();
             updatePhraseRadios();
+            updateCustomBandsUI();
         });
 
         // Initialize

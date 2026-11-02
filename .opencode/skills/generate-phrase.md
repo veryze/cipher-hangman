@@ -1,7 +1,7 @@
 # SKILL.md
 name: generate-phrase
-description: Hangman LLM endpoint via Netlify Function (Groq) — themed phrase generation (incl. lyrics fetching and idiom bank) + post-game explanations
-version: 1.4.0
+description: Hangman LLM endpoint via Netlify Function (Groq) — themed phrase generation (incl. lyrics fetching, custom bands, idiom bank) + post-game explanations
+version: 1.5.0
 
 tools:
   - name: generate_phrase
@@ -81,6 +81,10 @@ tools:
 #   - song: the phrase is a REAL lyric line fetched from api.lyrics.ovh (free, no API key;
 #     random well-known song from SONG_LIST, random valid line). Falls back to the LLM if
 #     the website is unreachable. No artist names (confirmed at prompt + validation level).
+#     Optional 'customBands' (Song theme only; comma-separated band names, max 8): lyric
+#     lines are then taken from songs by those bands via the suggest endpoint, snippets may
+#     span 1-2 consecutive lines (up to ~120 chars instead of the usual 15-45 cap), and
+#     DIFFICULTY IS IGNORED for this path (source reported as 'lyrics-ovh-custom').
 #   - idiom: 50% of the time served directly from CANONICAL_IDIOMS (classic idioms the LLM
 #     mangles, e.g. A STITCH IN TIME SAVES NINE); otherwise via the LLM with examples.
 #   - book: prompt restricts output to the title itself with no author attribution, and any

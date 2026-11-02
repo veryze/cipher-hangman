@@ -2164,18 +2164,25 @@
         async function fetchLLMPhrase() {
             if (!useLLMPhrases) return null;
 
-            // Phrase theme/difficulty selected in the menu (set by index.html)
+            // Phrase theme/difficulty + custom bands selected in the menu (set by index.html)
             let theme = 'any';
             let difficulty = 'normal';
+            let customBands = null;
             try {
                 const opts = JSON.parse(sessionStorage.getItem('cipherHangmanPhraseOptions') || '{}');
                 if (['any', 'movie', 'idiom', 'song', 'book'].includes(opts.theme)) theme = opts.theme;
                 if (['easy', 'normal', 'hard'].includes(opts.difficulty)) difficulty = opts.difficulty;
+                if (theme === 'song' && opts.customBands && opts.customBands.enabled
+                    && typeof opts.customBands.list === 'string' && opts.customBands.list.trim()) {
+                    customBands = opts.customBands.list.trim().slice(0, 150);
+                }
             } catch (e) {
                 console.warn('Failed to read phrase options, using defaults');
             }
 
-            return await fetchPhraseFrom({ mode: 'phrase', theme, difficulty });
+            const payload = { mode: 'phrase', theme, difficulty };
+            if (customBands) payload.customBands = customBands;
+            return await fetchPhraseFrom(payload);
         }
         // Fetch a post-game explanation from the LLM: phrase origin + entropy interpretation
         let explanationToken = 0; // increments each fetch so stale responses can't overwrite a newer game's modal

@@ -8,7 +8,11 @@
  *   difficulty easy|normal|hard.
  *   Sources, depending on theme:
  *   - song: fetched as real lyric lines from the free lyrics.ovh site
- *     (falls back to the LLM if the site is unavailable)
+ *     (falls back to the LLM if the site is unavailable). If the request
+ *     also carries 'customBands' (comma-separated band names), lyric lines
+ *     are taken from songs by those bands via the suggest endpoint, snippets
+ *     may span 1-2 consecutive lines (up to ~120 chars), and difficulty is
+ *     ignored for this path
  *   - idiom: 50% drawn from a canonical idiom bank (the LLM often mangles
  *     classic idioms), otherwise the LLM
  *   - movie/book/any: the LLM, with theme overrides; book output containing
@@ -190,35 +194,81 @@ function validatePhrase(phrase, minLen = 10, maxLen = 70) {
 
 // --- Song lyrics: fetch REAL lines from a lyrics site (no key needed) ---
 const LYRICS_API = "https://api.lyrics.ovh/v1/";
+const LYRICS_SUGGEST_API = "https://api.lyrics.ovh/suggest/";
+
+const LYRICS_TIMEOUT_MS = 8000;
 
 function cleanLyricLine(line, minLen, maxLen) {
   const cleaned = (line || "").trim().toUpperCase().replace(/[^A-Z\s]/g, '').replace(/\s+/g, ' ').trim();
   return validatePhrase(cleaned, minLen, maxLen);
 }
 
-async function fetchLyricPhrase(minLen, maxLen) {
-  for (let t = 0; t < 2; t++) {
-    const song = SONG_LIST[Math.floor(Math.random() * SONG_LIST.length)];
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch(`${LYRICS_API}${encodeURIComponent(song.artist)}/${encodeURIComponent(song.title)}`, {
-        signal: controller.signal,
-        headers: { "Accept": "application/json" },
-      });
-      clearTimeout(timer);
-      if (!res.ok) {
-        console.error(`Lyrics API ${res.status} for ${song.artist} - ${song.title}`);
-        continue;
-      }
-      const data = await res.json();
-      const lines = [...new Set((data.lyrics || "").split(/\r?\n/).map(l => cleanLyricLine(l, minLen, maxLen)).filter(Boolean))];
-      if (lines.length) {
-        return lines[Math.floor(Math.random() * lines.length)];
-      }
-    } catch (e) {
-      console.error(`Lyrics fetch failed for ${song.artist}:`, e);
+// Build candidate snippets of 1..maxLines consecutive lyric lines (each line already
+// validated alone), so short lines can combine instead of being hard-capped
+function pickLyricSnippet(lyricsText, minLen, maxLen, maxLines) {
+  const rawLines = (lyricsText || "").split(/\r?\n/);
+  const snippets = [];
+  for (let i = 0; i < rawLines.length; i++) {
+    if (!rawLines[i].trim()) continue;
+    for (let n = 1; n <= maxLines; n++) {
+      const chunk = rawLines.slice(i, i + n);
+      if (chunk.length < n) break;
+      if (chunk.some(l => !l.trim())) continue; // lines must be consecutive non-blank
+      const cleaned = validatePhrase(chunk.join(' '), minLen, maxLen);
+      if (cleaned) snippets.push(cleaned);
     }
+  }
+  return snippets.length ? snippets[Math.floor(Math.random() * snippets.length)] : null;
+}
+
+async function fetchTimedJson(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LYRICS_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "Accept": "application/json" },
+    });
+    if (!res.ok) {
+      console.error(`Lyrics API ${res.status} for ${url}`);
+      return null;
+    }
+    return await res.json();
+  } catch (e) {
+    console.error(`Lyrics fetch failed (${url}):`, e);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Find a song by one of the user's custom bands via the suggest endpoint
+async function pickSongByBand(band) {
+  const data = await fetchTimedJson(`${LYRICS_SUGGEST_API}${encodeURIComponent(band.trim())}`);
+  if (!data || !Array.isArray(data.results)) return null;
+  const bandNorm = band.trim().toLowerCase();
+  const matches = data.results.filter(r =>
+    r && r.artist && typeof r.artist.name === 'string' &&
+    r.artist.name.toLowerCase().includes(bandNorm));
+  if (!matches.length) return null;
+  const pick = matches[Math.floor(Math.random() * matches.length)];
+  return { artist: pick.artist.name, title: pick.title };
+}
+
+async function fetchLyricPhrase(minLen, maxLen, bands, maxLines) {
+  for (let t = 0; t < 3; t++) {
+    let song;
+    if (bands && bands.length) {
+      song = await pickSongByBand(bands[Math.floor(Math.random() * bands.length)]);
+    } else {
+      song = SONG_LIST[Math.floor(Math.random() * SONG_LIST.length)];
+    }
+    if (!song) continue;
+
+    const data = await fetchTimedJson(`${LYRICS_API}${encodeURIComponent(song.artist)}/${encodeURIComponent(song.title)}`);
+    if (!data) continue;
+    const snippet = pickLyricSnippet(data.lyrics || "", minLen, maxLen, maxLines);
+    if (snippet) return snippet;
   }
   return null;
 }
@@ -255,6 +305,19 @@ export async function handler(event, context) {
     "Access-Control-Allow-Origin": "*",
   };
 
+  // Optional custom bands (Song theme): comma-separated band names from the menu.
+  // Present => song theme, and DIFFICULTY IS IGNORED (1-2 line snippets, relaxed length limit).
+  let customBands = null;
+  if (theme === "song" && typeof body.customBands === "string" && body.customBands.trim()) {
+    const names = [...new Set(body.customBands
+      .split(",")
+      .map(b => b.replace(/[^A-Za-z0-9 &.'\-/]/g, '').trim())
+      .filter(b => b && b.length <= 40))];
+    if (names.length) customBands = names.slice(0, 8);
+  }
+  const ignoreDifficulty = theme === "song" && !!customBands;
+  const effectiveDifficulty = ignoreDifficulty ? "normal" : difficulty;
+
   // ---- Explain mode: post-game explanation of phrase + entropy ----
   if (body.mode === "explain") {
     const { phrase, cipher, outcome, entropy, surprisal } = body;
@@ -288,9 +351,10 @@ export async function handler(event, context) {
   }
 
   // ---- Default: phrase mode ----
-  // Difficulty length guards: reject normal-difficulty phrases passing as hard (and vice versa)
-  const minLen = difficulty === "hard" ? 25 : 10;
-  const maxLen = difficulty === "easy" ? 40 : 70;
+  // Difficulty length guards: reject normal-difficulty phrases passing as hard (and vice versa).
+  // Skipped when custom bands are used (difficulty is ignored there; snippets may span 1-2 lines).
+  const minLen = ignoreDifficulty ? 10 : (effectiveDifficulty === "hard" ? 25 : 10);
+  const maxLen = ignoreDifficulty ? 120 : (effectiveDifficulty === "easy" ? 40 : 70);
 
   let phrase = null;
   let source = "llm";
@@ -304,8 +368,8 @@ export async function handler(event, context) {
 
   // Songs: real lyric lines fetched from a lyrics website
   if (!phrase && theme === "song") {
-    phrase = await fetchLyricPhrase(minLen, maxLen);
-    if (phrase) source = "lyrics-ovh";
+    phrase = await fetchLyricPhrase(minLen, maxLen, customBands, ignoreDifficulty ? 2 : 1);
+    if (phrase) source = ignoreDifficulty ? "lyrics-ovh-custom" : "lyrics-ovh";
   }
 
   let attempts = 0;
@@ -314,7 +378,9 @@ export async function handler(event, context) {
   while (!phrase && attempts < maxAttempts) {
     attempts++;
     try {
-      const raw = await callGroqForPhrase(apiKey, theme, difficulty);
+      // LLM fallback ignores custom bands (the model cannot search a site);
+      // effectiveDifficulty already normalised when bands are in play
+      const raw = await callGroqForPhrase(apiKey, theme, effectiveDifficulty);
       phrase = validatePhrase(raw, minLen, maxLen);
       if (phrase) {
         // Book titles must not smuggle in attributions ("HAMLET BY SHAKESPEARE")
@@ -339,6 +405,6 @@ export async function handler(event, context) {
   return {
     statusCode: 200,
     headers: { ...CORS_HEADERS, "Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0" },
-    body: JSON.stringify({ phrase, theme, difficulty, source }),
+    body: JSON.stringify({ phrase, theme, difficulty: effectiveDifficulty, source }),
   };
 }
