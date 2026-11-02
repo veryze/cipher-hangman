@@ -289,7 +289,6 @@ function validatePhrase(phrase, minLen = 10, maxLen = 70) {
   return cleaned;
 }
 
-// --- Song lyrics: fetch REAL lines from a lyrics site (no key needed) ---
 const LYRICS_API = "https://api.lyrics.ovh/v1/";
 const LYRICS_SUGGEST_API = "https://api.lyrics.ovh/suggest/";
 
