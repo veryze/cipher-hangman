@@ -65,7 +65,7 @@ function buildPhraseSystemPrompt(theme, difficulty) {
 const EXPLAIN_SYSTEM_PROMPT = `You are a friendly teacher explaining a finished round of a Hangman + cipher decoding game used to teach information theory.
 You are given the English phrase, the cipher type used, whether the player won or lost, and the phrase's Shannon entropy and average surprisal in bits.
 Write AT MOST 3 short sentences (max 60 words total):
-1. Where the phrase comes from or what it means/when people say it (it is a known quote, proverb, idiom, song lyric, or book title).
+1. Where the phrase comes from or what it means/when people say it (it is a known quote, proverb, idiom, song lyric, or book title). If the user message contains a PHRASE ORIGIN line, that origin is VERIFIED data: state it as fact, use the exact song title / artist / band given there, and NEVER invent or substitute a different source.
 2. One sentence connecting to information theory: interpret the entropy/surprisal values (low entropy or low surprisal means predictable letters like E, T, A dominate; high values mean an unusual letter mix or long phrase that was harder to decode).
 Rules:
 - PLAIN TEXT only: NO markdown, NO bullet points, NO quotation marks around the phrase, NO emojis
@@ -162,9 +162,49 @@ function callGroqForPhrase(apiKey, theme, difficulty) {
   });
 }
 
-function callGroqForExplanation(apiKey, { phrase, cipher, outcome, entropy, surprisal }) {
+// Sanitize free-text explain fields (band names, song artist/title) so they can
+// never inject prompt control characters; keep letters, digits and light punctuation.
+function sanitizeExplainText(value, max) {
+  if (typeof value !== "string") return "";
+  return value.replace(/[^\p{L}\p{N} &.'\-/]/gu, " ").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+// Parse a comma-separated band list (same shape the phrase path uses)
+function parseBandList(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const names = [...new Set(value.split(",").map(b => sanitizeExplainText(b, 40)).filter(b => b))];
+  return names.length ? names.slice(0, 8) : null;
+}
+
+// Turn picker state (theme + custom bands + fetched song metadata) into a
+// verified-origin line for the explanation prompt. Backend callers that do not
+// pass these fields (e.g. the frontend after an offline-bank fallback) keep the
+// model's old behavior of inferring the origin itself.
+function buildExplainOrigin({ theme, bands, songArtist, songTitle }) {
+  const isSong = theme === "song";
+  if (isSong && songArtist && songTitle) {
+    const via = bands && bands.length ? ` (custom band: ${bands.join(", ")})` : "";
+    return `PHRASE ORIGIN (verified - use as fact): a REAL lyric line from the song "${songTitle}" by ${songArtist}${via}.`;
+  }
+  if (isSong) {
+    const via = bands && bands.length
+      ? ` Mention it comes from a song by ${bands.join(", ")} if it fits naturally; do NOT name a specific song or artist.`
+      : "";
+    return `PHRASE ORIGIN (use as fact): a well-known SONG LYRIC line — the artist is not verified, so phrase its origin generally without inventing a song.${via}`;
+  }
+  const label = {
+    movie: "a well-known MOVIE QUOTE",
+    idiom: "an established English IDIOM",
+    book: "the exact title of a well-known published BOOK",
+  }[theme || "any"];
+  return `PHRASE ORIGIN (use as fact): ${label || "a well-known famous phrase"}.`;
+}
+
+function callGroqForExplanation(apiKey, { phrase, cipher, outcome, entropy, surprisal, theme, bands, songArtist, songTitle }) {
+  const origin = buildExplainOrigin({ theme, bands, songArtist, songTitle });
   const userPrompt = [
     `Phrase: "${phrase}"`,
+    origin,
     `Cipher used: ${cipher}`,
     `Result: ${outcome}`,
     entropy !== undefined ? `Shannon entropy of the phrase's letter distribution: ${Number(entropy).toFixed(2)} bits` : null,
@@ -260,9 +300,11 @@ async function pickSongByBand(band) {
 
 async function fetchLyricPhrase(minLen, maxLen, bands, maxLines) {
   for (let t = 0; t < 3; t++) {
+    let band = null;
     let song;
     if (bands && bands.length) {
-      song = await pickSongByBand(bands[Math.floor(Math.random() * bands.length)]);
+      band = bands[Math.floor(Math.random() * bands.length)];
+      song = await pickSongByBand(band);
     } else {
       song = SONG_LIST[Math.floor(Math.random() * SONG_LIST.length)];
     }
@@ -271,7 +313,10 @@ async function fetchLyricPhrase(minLen, maxLen, bands, maxLines) {
     const data = await fetchTimedJson(`${LYRICS_API}${encodeURIComponent(song.artist)}/${encodeURIComponent(song.title)}`);
     if (!data) continue;
     const snippet = pickLyricSnippet(data.lyrics || "", minLen, maxLen, maxLines);
-    if (snippet) return snippet;
+    if (snippet) {
+      // Provenance for the explain mode: which band was picked + the actual song
+      return { snippet, song: { artist: song.artist, title: song.title, band } };
+    }
   }
   return null;
 }
@@ -330,6 +375,16 @@ export async function handler(event, context) {
     }
     const safeOutcome = outcome === "win" ? "The player WON this round." : "The player lost this round.";
 
+    // Picker state sent directly by the frontend (sent with the phrase when known):
+    // a) theme picked in the menu; b) custom band list + the actual song the
+    // lyric line was taken from (returned by the phrase call as 'song').
+    // Unknown values are sanitised/fallback so the prompt cannot be hijacked;
+    // absent fields simply fall back to the model inferring the origin itself.
+    const explainTheme = THEME_RULES[body.theme] !== undefined ? body.theme : null;
+    const explainBands = explainTheme === "song" ? parseBandList(body.customBands) : null;
+    const songArtist = sanitizeExplainText(body.songArtist, 60);
+    const songTitle = sanitizeExplainText(body.songTitle, 60);
+
     try {
       const raw = await callGroqForExplanation(apiKey, {
         phrase: cleanPhrase,
@@ -337,6 +392,10 @@ export async function handler(event, context) {
         outcome: safeOutcome,
         entropy,
         surprisal,
+        theme: explainTheme,
+        bands: explainBands,
+        songArtist,
+        songTitle,
       });
       const explanation = raw ? raw.replace(/^["'\s]+|["'\s]+$/g, '') : "";
       if (!explanation || explanation.length < 20 || explanation.length > 600) {
@@ -370,9 +429,14 @@ export async function handler(event, context) {
   }
 
   // Songs: real lyric lines fetched from a lyrics website
+  let songInfo = null; // provenance for the explain mode (theme === song)
   if (!phrase && theme === "song") {
-    phrase = await fetchLyricPhrase(minLen, maxLen, customBands, ignoreDifficulty ? 2 : 1);
-    if (phrase) source = ignoreDifficulty ? "lyrics-ovh-custom" : "lyrics-ovh";
+    const lyric = await fetchLyricPhrase(minLen, maxLen, customBands, ignoreDifficulty ? 2 : 1);
+    if (lyric) {
+      phrase = lyric.snippet;
+      songInfo = lyric.song;
+      source = ignoreDifficulty ? "lyrics-ovh-custom" : "lyrics-ovh";
+    }
   }
 
   let attempts = 0;
@@ -405,9 +469,13 @@ export async function handler(event, context) {
     };
   }
 
+  const response = { phrase, theme, difficulty: effectiveDifficulty, source };
+  // Song provenance (only when the phrase really is a fetched lyric line):
+  // artist/title of the actual song plus the band picked in the menu, if any.
+  if (songInfo) response.song = songInfo;
   return {
     statusCode: 200,
     headers: { ...CORS_HEADERS, "Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0" },
-    body: JSON.stringify({ phrase, theme, difficulty: effectiveDifficulty, source }),
+    body: JSON.stringify(response),
   };
 }

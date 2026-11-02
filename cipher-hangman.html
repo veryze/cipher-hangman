@@ -2094,6 +2094,7 @@
             // Fallback to local phrases if API fails
             if (!phrase) {
                 phrase = PHRASES[Math.floor(Math.random() * PHRASES.length)];
+                lastPhraseMeta = null; // origin unknown -> explain call infers it itself
             }
             
             // Reset state
@@ -2140,7 +2141,7 @@
             newGameBtn.textContent = 'NEW GAME';
         }
 
-        // Fetch a new phrase from the LLM API
+        // Fetch a new phrase from the LLM API (returns full response data, or null)
         async function fetchPhraseFrom(payload) {
             try {
                 const response = await fetch('/.netlify/functions/generate-themed-phrase', {
@@ -2154,7 +2155,7 @@
                 });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                return data.phrase || null;
+                return data.phrase ? data : null;
             } catch (e) {
                 console.log('Phrase fetch failed, using local phrases:', e);
                 return null;
@@ -2182,9 +2183,25 @@
 
             const payload = { mode: 'phrase', theme, difficulty };
             if (customBands) payload.customBands = customBands;
-            return await fetchPhraseFrom(payload);
+            const data = await fetchPhraseFrom(payload);
+            if (!data) return null;
+
+            // Stash provenance (theme picker + custom band + the song a lyric came
+            // from) so the post-game explain call can state the origin as fact.
+            // Older deployments / the LLM path have no song data: stash what exists.
+            lastPhraseMeta = {
+                theme,
+                customBands,
+                songArtist: data.song && data.song.artist,
+                songTitle: data.song && data.song.title,
+                source: data.source || 'llm',
+            };
+            return data.phrase;
         }
         // Fetch a post-game explanation from the LLM: phrase origin + entropy interpretation
+        // lastPhraseMeta: provenance of the current phrase (theme picker state +, for
+        // song lyrics, the band and the actual song the line was fetched from)
+        let lastPhraseMeta = null;
         let explanationToken = 0; // increments each fetch so stale responses can't overwrite a newer game's modal
         async function fetchExplanation(outcome) {
             const explainWrap = document.getElementById('modalExplanationWrap');
@@ -2206,6 +2223,11 @@
                         outcome: outcome,
                         entropy: phraseEntropy,
                         surprisal: phraseSurprisal / Math.max(1, originalPhrase.replace(/ /g, '').length),
+                        // Picker state + lyric provenance (verified origin data):
+                        theme: lastPhraseMeta && lastPhraseMeta.theme,
+                        customBands: lastPhraseMeta && lastPhraseMeta.customBands,
+                        songArtist: lastPhraseMeta && lastPhraseMeta.songArtist,
+                        songTitle: lastPhraseMeta && lastPhraseMeta.songTitle,
                     }),
                 });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);

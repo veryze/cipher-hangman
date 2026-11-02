@@ -37,7 +37,8 @@ The format of this repo is:
 ---
 
 *generate-themed-phrase.js* is the project's only LLM endpoint. It serves two modes, chosen by the `mode` field in the POST body. 
-In the default *phrase* mode it generates the short phrase used for the main Hangman game, following the theme and difficulty picked in the menu's New Game modal (all types / movie quotes / idioms / song lyrics / book titles, plus easy/normal/hard). The theme and difficulty are appended to the system prompt as THEME OVERRIDE and DIFFICULTY lines with format examples; missing or unrecognized values fall back to the default prompt. Difficulty is also enforced by length validation: phrases shorter than 25 characters are rejected for hard (aiming 30-60, rare letters encouraged) and longer than 40 are rejected for easy, so a normal-difficulty phrase won't be generated in hard mode. 
+In the default **`phrase`** mode it generates the short phrase used for the main Hangman game, following the theme and difficulty picked in the menu's New Game modal (all types / movie quotes / idioms / song lyrics / book titles, plus easy/normal/hard). The theme and difficulty are appended to the system prompt as THEME OVERRIDE and DIFFICULTY lines with format examples; missing or unrecognized values fall back to the default prompt. Difficulty is also enforced by length validation: phrases shorter than 25 characters are rejected for hard (aiming 30-60, rare letters encouraged) and longer than 40 are rejected for easy, so a normal-difficulty phrase won't be generated in hard mode. 
+<br>
 Per-theme extras: 
 - song lyrics are not generated at all, and instead fetched from the free lyrics.ovh website (randomly chosen from a list of ~20 well-known songs, validated and de-duplicated, 8s timeout, with the LLM only as a fallback if the site is unreachable). When Song theme is selected, the menu also offers an optional *Use custom bands* checkbox with a 1-2 line textbox for band names; lyric lines are then taken from songs by those bands (via the suggest endpoint) as snippets of up to two consecutive lines, and the difficulty choice is ignored for this path. 
 - idioms are served from a bank of canonical classics half of the time, with the LLM as the other half. 
@@ -53,7 +54,7 @@ Requirements:
 - Return ONLY the phrase, nothing else`;
 ```
 
-When *mode* is set to `explain` (called at the end of every round, win or lose), the phrase, cipher name, outcome, and the round's entropy and average surprisal values are sent instead, and the model responds with at most three sentences: what the phrase means or where it comes from, and one sentence interpreting the entropy/surprisal values. 
+When *mode* is set to **`explain`** (called at the end of every round, win or lose), the phrase, cipher name, outcome, and the round's entropy and average surprisal values are sent instead, and the model responds with at most three sentences: what the phrase means or where it comes from, and one sentence interpreting the entropy/surprisal values. 
 ```
 const EXPLAIN_SYSTEM_PROMPT = `You are a friendly teacher explaining a finished round of a Hangman + cipher decoding game used to teach information theory.
 You are given the English phrase, the cipher type used, whether the player won or lost, and the phrase's Shannon entropy and average surprisal in bits.

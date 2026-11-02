@@ -1,7 +1,7 @@
 # SKILL.md
 name: generate-phrase
 description: Hangman LLM endpoint via Netlify Function (Groq) — themed phrase generation (incl. lyrics fetching, custom bands, idiom bank) + post-game explanations
-version: 1.5.0
+version: 1.6.0
 
 tools:
   - name: generate_phrase
@@ -76,7 +76,11 @@ tools:
 #   values fall back to normal). The theme/difficulty are appended to the SYSTEM_PROMPT as
 #   THEME OVERRIDE and DIFFICULTY lines with few-shot format examples, and included in the
 #   user prompt ("Give me one <theme> phrase, difficulty: <d>").
-#   Response also includes a 'source' field: idiom-bank | lyrics-ovh | llm.
+#   Response also includes a 'source' field: idiom-bank | lyrics-ovh | lyrics-ovh-custom | llm.
+#   When the phrase is a fetched lyric line, the response also includes song
+#   provenance: frontends forward this to the explain call so the origin can be
+#   stated as fact ("song": { "artist": actual artist, "title": song title, "band": the
+#   band the user picked in the menu, null when no custom bands were used).
 #   Per-theme behavior:
 #   - song: the phrase is a REAL lyric line fetched from api.lyrics.ovh (free, no API key;
 #     random well-known song from SONG_LIST, random valid line). Falls back to the LLM if
@@ -92,6 +96,16 @@ tools:
 #   - difficulty hard/easy are enforced by validation (min 25 / max 40 chars respectively),
 #     so a normal-difficulty phrase cannot pass as hard.
 # - mode 'explain': post-game explanation; needs phrase, cipher, outcome, entropy, surprisal.
+#   Optional picker/provenance fields sent directly by the frontend (all sanitised server-side,
+#   unknown or absent values simply fall back to the model inferring the origin itself):
+#   - 'theme': the theme from the menu picker (any | movie | idiom | song | book) — becomes a
+#     verified PHRASE ORIGIN line in the prompt ("use as fact").
+#   - 'customBands': the comma-separated band list from the menu (Song theme only; ignored
+#     for other themes).
+#   - 'songArtist' + 'songTitle': the actual song the lyric line was fetched from (taken
+#     from the phrase response's song provenance). When present, the explanation names the
+#     exact song/artist as fact; when absent with bands given, the model mentions the band
+#     but is told not to invent a specific song.
 #
 # Note: SKILL.md files are documentation for OpenCode agents and are NOT deployed or
 # executed by Netlify — only the functions in netlify/functions/ run in production.
