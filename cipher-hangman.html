@@ -985,6 +985,10 @@
             <h2 id="modalTitle"></h2>
             <p id="modalMessage"></p>
             <p id="modalCipherInfo" style="font-size: 13px; color: #888; font-style: italic; margin-top: 8px;"></p>
+            <div class="modal-explanation" id="modalExplanationWrap">
+                <h3>AI Decode Notes</h3>
+                <p id="modalExplanation"></p>
+            </div>
             <div class="modal-controls">
                 <button class="btn primary" id="modalNewGameBtn">NEW GAME</button>
                 <button class="btn" id="modalMenuBtn">MENU</button>
@@ -1024,7 +1028,7 @@
                 </label>
             </div>
             <div class="setting-row">
-                <label class="toggle-label" title="Fetch new phrases from AI on each game">
+                <label class="toggle-label" title="Fetch new phrases and AI decode notes from the AI on each game">
                     <span class="toggle-text">Use AI Phrases</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="useLLMPhrasesToggle" checked>
@@ -2024,6 +2028,14 @@
             if (cipherInfoEl) {
                 cipherInfoEl.textContent = cipherInfo;
             }
+            // Reset/hide AI explanation, then fetch a new one for game-end modals
+            const explainWrap = document.getElementById('modalExplanationWrap');
+            if (explainWrap) {
+                explainWrap.style.display = 'none';
+                if (type === 'win' || type === 'lose') {
+                    fetchExplanation(type);
+                }
+            }
             modalOverlay.className = 'modal-overlay show';
             document.querySelector('#gameModal').className = 'modal ' + type;
         }
@@ -2147,6 +2159,44 @@
             } catch (e) {
                 console.log('LLM phrase fetch failed, using local phrases:', e);
                 return null;
+            }
+        }
+
+        // Fetch a post-game explanation from the LLM: phrase origin + entropy interpretation
+        let explanationToken = 0; // increments each fetch so stale responses can't overwrite a newer game's modal
+        async function fetchExplanation(outcome) {
+            const explainWrap = document.getElementById('modalExplanationWrap');
+            const explainEl = document.getElementById('modalExplanation');
+            if (!explainWrap || !explainEl || !useLLMPhrases) return;
+
+            const token = ++explanationToken;
+            explainWrap.style.display = 'block';
+            explainEl.textContent = 'AI is analyzing the phrase...';
+
+            try {
+                const response = await fetch('/.netlify/functions/generate-phrase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mode: 'explain',
+                        phrase: originalPhrase,
+                        cipher: getCipherDisplay(),
+                        outcome: outcome,
+                        entropy: phraseEntropy,
+                        surprisal: phraseSurprisal / Math.max(1, originalPhrase.replace(/ /g, '').length),
+                    }),
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                // Ignore stale result if the round already ended again / a new game started
+                if (token !== explanationToken) return;
+                if (!data.explanation) throw new Error('Empty explanation');
+                explainEl.textContent = data.explanation;
+            } catch (e) {
+                console.log('LLM explanation fetch failed:', e);
+                if (token !== explanationToken) return;
+                explainWrap.style.display = 'none'; // fail silently, keep modal usable
             }
         }
 

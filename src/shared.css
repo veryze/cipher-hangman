@@ -199,6 +199,32 @@ h1 {
     line-height: 1.5;
 }
 
+/* AI post-game explanation block */
+.modal-explanation {
+    display: none;
+    margin-bottom: 20px;
+    padding: 12px 14px;
+    background: #eef4fc;
+    border-left: 3px solid #4a7bd0;
+    border-radius: 6px;
+    text-align: left;
+}
+
+.modal-explanation h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #4a7bd0;
+    margin: 0 0 6px 0;
+}
+
+.modal-explanation p {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #444;
+    margin: 0;
+}
+
 .modal-controls {
     display: flex;
     flex-direction: column;
