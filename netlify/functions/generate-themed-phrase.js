@@ -4,9 +4,16 @@
  *
  * Modes (via 'mode' field in the POST body, default 'phrase'):
  * - phrase: generate a Hangman phrase following the theme/difficulty picked
- *   in the menu (index.html): theme any|movie|proverb|idiom|song|book,
- *   difficulty easy|normal|hard. Falls back to plain generation if the
- *   values are missing/unrecognized.
+ *   in the menu (index.html): theme any|movie|idiom|song|book,
+ *   difficulty easy|normal|hard.
+ *   Sources, depending on theme:
+ *   - song: fetched as real lyric lines from the free lyrics.ovh site
+ *     (falls back to the LLM if the site is unavailable)
+ *   - idiom: 50% drawn from a canonical idiom bank (the LLM often mangles
+ *     classic idioms), otherwise the LLM
+ *   - movie/book/any: the LLM, with theme overrides; book output containing
+ *     a BY-author attribution is rejected and retried
+ *   A phrase too short/long for the chosen difficulty is rejected and retried.
  * - explain: post-game explanation of the phrase's origin + entropy values
  *   (needs phrase, cipher, outcome, entropy, surprisal).
  *
@@ -16,27 +23,33 @@
 
 const SYSTEM_PROMPT = `Generate ONE short, recognizable English phrase for Hangman.
 Requirements:
-- 15-60 characters (including spaces)
-- MUST be a well-known: movie quote, proverb, idiom, famous saying, song lyric, book title
-- IDIOMS MUST be real, established English idioms (e.g., "BITE THE BULLET", "BREAK A LEG", "PIECE OF CAKE")
+- Uppercase letters A-Z and spaces ONLY (NO punctuation, numbers, special chars)
+- Identify the SOURCE, not a description of it: output the phrase itself, never the person/title/artist that said it
+- ONLY well-known, familiar sources: famous movie quotes, established idioms, famous song lyrics, famous book titles
 - NO invented phrases, NO obscure references
-- ONLY uppercase letters A-Z and spaces (NO punctuation, numbers, special chars)
 - Return ONLY the phrase, nothing else`;
 
 // Optional constraints appended to the system prompt
 const THEME_RULES = {
   any: "",
-  movie: "THEME OVERRIDE: the phrase MUST be a well-known MOVIE QUOTE (e.g. from a famous film).",
-  proverb: "THEME OVERRIDE: the phrase MUST be a well-known PROVERB or traditional saying.",
-  idiom: "THEME OVERRIDE: the phrase MUST be a real, established English IDIOM (e.g. PIECE OF CAKE).",
-  song: "THEME OVERRIDE: the phrase MUST be a well-known SONG LYRIC from a famous song (one well-known line only).",
-  book: "THEME OVERRIDE: the phrase MUST be a well-known BOOK TITLE.",
+  movie: `THEME OVERRIDE: output ONLY the well-known MOVIE QUOTE itself - a line as it is said in the film.
+NEVER include the film title, the character who says it, or the word BY.
+Format examples: MAY THE FORCE BE WITH YOU / ILL BE BACK / YOU CANNOT HANDLE THE TRUTH / SHOW ME THE MONEY`,
+  idiom: `THEME OVERRIDE: output ONLY one real, established English IDIOM, exactly as people say it.
+NEVER explain it, never add words that are not part of the idiom.
+These are all idioms and formatted correctly: A STITCH IN TIME SAVES NINE / ONCE IN A BLUE MOON / THE LAST STRAW / ON THIN ICE / BETTER LATE THAN NEVER`,
+  song: `THEME OVERRIDE: output ONE actual well-known SONG LYRIC line, exactly as sung in the song.
+NEVER include the artist name, the song title, the word BY, or parentheses. Lyrics only, NEVER a description of the song.
+Format examples: LET IT BE / HERE COMES THE SUN / IM WALKING ON SUNSHINE / WE WILL ROCK YOU / IM STILL STANDING`,
+  book: `THEME OVERRIDE: output ONLY the exact title of a well-known published BOOK.
+Add NOTHING: no author name, no BY + name, no series numbering (BOOK ONE), no subtitle that is not part of the title, and NEVER a saying or quote instead of a title.
+Format examples: TO KILL A MOCKINGBIRD / PRIDE AND PREJUDICE / THE CATCHER IN THE RYE / JANE EYRE`,
 };
 
 const DIFFICULTY_RULES = {
-  normal: "",
-  easy: "DIFFICULTY EASY: prefer 15-30 characters overall; pick a very common, instantly recognizable phrase whose words repeat common letters (E, T, A, O) often.",
-  hard: "DIFFICULTY HARD: prefer 30-60 characters overall; pick a phrase with a more unusual letter distribution - rare letters like J, K, Q, X, Z are welcome, and avoid phrases where the same common letter repeats many times.",
+  normal: "DIFFICULTY NORMAL: prefer 15-60 characters total.",
+  easy: `DIFFICULTY EASY: the phrase must be AT MOST 40 characters total (aim for 15-30); pick a very common, instantly recognizable phrase whose words repeat common letters (E, T, A, O) often. If your phrase is longer than 40 characters, it will be rejected.`,
+  hard: `DIFFICULTY HARD: the phrase must be AT LEAST 25 characters total (aim for 30-60). Pick a longer, rarer phrase with an unusual letter distribution - rare letters like J, K, Q, X, Z are welcome, and avoid phrases where the same common letter repeats many times. If your phrase is shorter than 25 characters, it will be rejected.`,
 };
 
 function buildPhraseSystemPrompt(theme, difficulty) {
@@ -55,6 +68,50 @@ Rules:
 - Friendly, encouraging tone for NLP students
 - Do NOT contradict the given outcome (never claim the player won if they lost)
 - Return ONLY the explanation text, nothing else`;
+
+// Canonical classics the LLM often mangles; used directly so they actually appear
+const CANONICAL_IDIOMS = [
+  "A STITCH IN TIME SAVES NINE",
+  "ONCE IN A BLUE MOON",
+  "A BLESSING IN DISGUISE",
+  "BARKING UP THE WRONG TREE",
+  "THE CALM BEFORE THE STORM",
+  "EVERY CLOUD HAS A SILVER LINING",
+  "THE LAST STRAW",
+  "ON THIN ICE",
+  "BETTER LATE THAN NEVER",
+  "IGNORANCE IS BLISS",
+  "SPLITTING HAIRS",
+  "BURNING THE MIDNIGHT OIL",
+];
+
+// Well-known songs for lyrics fetching (free key-less endpoint)
+const SONG_LIST = [
+  { artist: "The Beatles", title: "Let It Be" },
+  { artist: "The Beatles", title: "Hey Jude" },
+  { artist: "The Beatles", title: "With a Little Help from My Friends" },
+  { artist: "Queen", title: "Bohemian Rhapsody" },
+  { artist: "Queen", title: "We Are the Champions" },
+  { artist: "Queen", title: "Another One Bites the Dust" },
+  { artist: "Eagles", title: "Hotel California" },
+  { artist: "Simon And Garfunkel", title: "Bridge Over Troubled Water" },
+  { artist: "The Rolling Stones", title: "Paint It Black" },
+  { artist: "Elton John", title: "Rocket Man" },
+  { artist: "Elton John", title: "Your Song" },
+  { artist: "John Lennon", title: "Imagine" },
+  { artist: "Andrea Bocelli And Sarah Brightman", title: "Time to Say Goodbye" },
+  { artist: "Lynyrd Skynyrd", title: "Free Bird" },
+  { artist: "R.E.M.", title: "Losing My Religion" },
+  { artist: "Eric Clapton", title: "Wonderful Tonight" },
+  { artist: "Bob Dylan", title: "Blowin in the Wind" },
+  { artist: "Aerosmith", title: "Dream On" },
+  { artist: "Journey", title: "Dont Stop Believin" },
+  { artist: "Bon Jovi", title: "Livin on a Prayer" },
+  { artist: "Nirvana", title: "Smells Like Teen Spirit" },
+  { artist: "Fleetwood Mac", title: "Landslide" },
+  { artist: "Elvis Presley", title: "Cant Help Falling in Love" },
+  { artist: "Whitney Houston", title: "Greatest Love of All" },
+];
 
 function callGroq(apiKey, systemPrompt, userPrompt, options = {}) {
   return fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -119,16 +176,51 @@ function callGroqForExplanation(apiKey, { phrase, cipher, outcome, entropy, surp
   });
 }
 
-function validatePhrase(phrase) {
+function validatePhrase(phrase, minLen = 10, maxLen = 70) {
   if (!phrase) return false;
   // Strip any non-A-Z/space chars instead of rejecting outright
-  const cleaned = phrase.trim().toUpperCase().replace(/[^A-Z\s]/g, '');
-  if (cleaned.length < 10 || cleaned.length > 70) return false;
+  const cleaned = phrase.trim().toUpperCase().replace(/[^A-Z\s]/g, '').replace(/\s+/g, ' ').trim();
+  if (cleaned.length < minLen || cleaned.length > maxLen) return false;
   // Only A-Z and spaces
   if (!/^[A-Z\s]+$/.test(cleaned)) return false;
   // At least 2 words (more lenient)
   if (cleaned.split(" ").filter(w => w.length > 0).length < 2) return false;
   return cleaned;
+}
+
+// --- Song lyrics: fetch REAL lines from a lyrics site (no key needed) ---
+const LYRICS_API = "https://api.lyrics.ovh/v1/";
+
+function cleanLyricLine(line, minLen, maxLen) {
+  const cleaned = (line || "").trim().toUpperCase().replace(/[^A-Z\s]/g, '').replace(/\s+/g, ' ').trim();
+  return validatePhrase(cleaned, minLen, maxLen);
+}
+
+async function fetchLyricPhrase(minLen, maxLen) {
+  for (let t = 0; t < 2; t++) {
+    const song = SONG_LIST[Math.floor(Math.random() * SONG_LIST.length)];
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(`${LYRICS_API}${encodeURIComponent(song.artist)}/${encodeURIComponent(song.title)}`, {
+        signal: controller.signal,
+        headers: { "Accept": "application/json" },
+      });
+      clearTimeout(timer);
+      if (!res.ok) {
+        console.error(`Lyrics API ${res.status} for ${song.artist} - ${song.title}`);
+        continue;
+      }
+      const data = await res.json();
+      const lines = [...new Set((data.lyrics || "").split(/\r?\n/).map(l => cleanLyricLine(l, minLen, maxLen)).filter(Boolean))];
+      if (lines.length) {
+        return lines[Math.floor(Math.random() * lines.length)];
+      }
+    } catch (e) {
+      console.error(`Lyrics fetch failed for ${song.artist}:`, e);
+    }
+  }
+  return null;
 }
 
 export async function handler(event, context) {
@@ -196,7 +288,26 @@ export async function handler(event, context) {
   }
 
   // ---- Default: phrase mode ----
+  // Difficulty length guards: reject normal-difficulty phrases passing as hard (and vice versa)
+  const minLen = difficulty === "hard" ? 25 : 10;
+  const maxLen = difficulty === "easy" ? 40 : 70;
+
   let phrase = null;
+  let source = "llm";
+
+  // Idioms: guarantee canonical classics half of the time
+  if (theme === "idiom" && Math.random() < 0.5) {
+    const pick = CANONICAL_IDIOMS[Math.floor(Math.random() * CANONICAL_IDIOMS.length)];
+    phrase = validatePhrase(pick, minLen, maxLen);
+    if (phrase) source = "idiom-bank";
+  }
+
+  // Songs: real lyric lines fetched from a lyrics website
+  if (!phrase && theme === "song") {
+    phrase = await fetchLyricPhrase(minLen, maxLen);
+    if (phrase) source = "lyrics-ovh";
+  }
+
   let attempts = 0;
   const maxAttempts = 3;
 
@@ -204,7 +315,14 @@ export async function handler(event, context) {
     attempts++;
     try {
       const raw = await callGroqForPhrase(apiKey, theme, difficulty);
-      phrase = validatePhrase(raw);
+      phrase = validatePhrase(raw, minLen, maxLen);
+      if (phrase) {
+        // Book titles must not smuggle in attributions ("HAMLET BY SHAKESPEARE")
+        if (theme === "book" && /\bBY\b/.test(phrase)) {
+          console.log(`Attempt ${attempts}: Book rejected (contains BY):`, phrase);
+          phrase = null;
+        }
+      }
       if (!phrase) console.log(`Attempt ${attempts}: Invalid phrase:`, raw);
     } catch (e) {
       console.error(`Attempt ${attempts} failed:`, e);
@@ -220,13 +338,7 @@ export async function handler(event, context) {
 
   return {
     statusCode: 200,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Cache-Control": "no-cache, no-store, must-revalidate",
-      "Pragma": "no-cache",
-      "Expires": "0",
-    },
-    body: JSON.stringify({ phrase, theme, difficulty }),
+    headers: { ...CORS_HEADERS, "Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0" },
+    body: JSON.stringify({ phrase, theme, difficulty, source }),
   };
 }

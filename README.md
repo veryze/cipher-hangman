@@ -37,15 +37,14 @@ The format of this repo is:
 ---
 
 *generate-themed-phrase.js* is the project's only LLM endpoint (it replaced generate-phrase.js, which was removed). It serves two modes, chosen by the `mode` field in the POST body. 
-In the default *phrase* mode it calls Groq and generates the short phrase used for the main Hangman game, following the theme and difficulty picked in the menu's New Game modal (all types / movie quotes / proverbs / idioms / song lyrics / book titles, plus easy/normal/hard). The values arrive in the POST body and are appended to the system prompt as THEME OVERRIDE and DIFFICULTY lines; missing or unrecognized values fall back to the default prompt. 
+In the default *phrase* mode it generates the short phrase used for the main Hangman game, following the theme and difficulty picked in the menu's New Game modal (all types / movie quotes / idioms / song lyrics / book titles, plus easy/normal/hard). The theme and difficulty are appended to the system prompt as THEME OVERRIDE and DIFFICULTY lines with format examples; missing or unrecognized values fall back to the default prompt. Difficulty is also enforced by validation: phrases **shorter than 25 characters are rejected** for hard (aiming 30-60, rare letters welcome) and **longer than 40 are rejected** for easy, so a normal-difficulty phrase can't slip through as hard. Per-theme extras: **song lyrics are not generated at all** - the function fetches real lines from the free lyrics.ovh website (randomly chosen from a list of ~20 well-known songs, validated and de-duplicated, 8s timeout, with the LLM only as a fallback if the site is unreachable); **idioms are served from a bank of canonical classics** (including A STITCH IN TIME SAVES NINE, which LLM generation kept mangling) half of the time, with the LLM as the other half; **book answers must be titles only** - outputs containing an author attribution (the word BY) are rejected and retried. Every response also carries a `source` field (llm / idiom-bank / lyrics-ovh). 
 ```
 const SYSTEM_PROMPT = `Generate ONE short, recognizable English phrase for Hangman.
 Requirements:
-- 15-60 characters (including spaces)
-- MUST be a well-known: movie quote, proverb, idiom, famous saying, song lyric, book title
-- IDIOMS MUST be real, established English idioms (e.g., "BITE THE BULLET", "BREAK A LEG", "PIECE OF CAKE")
+- Uppercase letters A-Z and spaces ONLY (NO punctuation, numbers, special chars)
+- Identify the SOURCE, not a description of it: output the phrase itself, never the person/title/artist that said it
+- ONLY well-known, familiar sources: famous movie quotes, established idioms, famous song lyrics, famous book titles
 - NO invented phrases, NO obscure references
-- ONLY uppercase letters A-Z and spaces (NO punctuation, numbers, special chars)
 - Return ONLY the phrase, nothing else`;
 ```
 When *mode* is set to `explain` (called at the end of every round, win or lose), the phrase, cipher name, outcome, and the round's entropy and average surprisal values are sent instead, and the model responds with at most three sentences: what the phrase means or where it comes from, and one sentence interpreting the entropy/surprisal values. 
@@ -91,7 +90,7 @@ If a hint is used or a wrong letter is keyed, the amount of lives the user has d
 
 ---
 
-*index.html* is the menu, as well as the landing page. From here, the user can go to the main game, the About page, or the cipher info page. When *New Game* is clicked, a scrollable modal appears, allowing the user to select the types of ciphers they want to see, along with the phrase theme and difficulty used for AI phrase generation (kept in local storage as *phrasePrefs*). The checked ciphers are cached in local storage, and accessed in the main game as *enabledCiphers*; the theme/difficulty are passed as *cipherHangmanPhraseOptions*. 
+*index.html* is the menu, as well as the landing page. From here, the user can go to the main game, the About page, or the cipher info page. When *New Game* is clicked, a scrollable modal appears, allowing the user to select the types of ciphers they want to see, along with the phrase theme and difficulty used for AI phrase generation (kept in local storage as *phrasePrefs*). The checked ciphers are cached in local storage, and accessed in the main game as *enabledCiphers*; the theme/difficulty are passed as *cipherHangmanPhraseOptions*.. 
 
 ---
 

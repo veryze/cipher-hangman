@@ -452,12 +452,6 @@
                     </div>
                     <div class="cipher-option">
                         <label>
-                            <input type="radio" name="phraseTheme" value="proverb">
-                            <span>Proverbs <span class="cipher-desc">(traditional sayings)</span></span>
-                        </label>
-                    </div>
-                    <div class="cipher-option">
-                        <label>
                             <input type="radio" name="phraseTheme" value="idiom">
                             <span>Idioms</span>
                         </label>
@@ -523,7 +517,7 @@
 
         // Phrase theme/difficulty preferences (persisted in localStorage)
         let phrasePrefs = { theme: 'any', difficulty: 'normal' };
-        const THEME_VALUES = ['any', 'movie', 'proverb', 'idiom', 'song', 'book'];
+        const THEME_VALUES = ['any', 'movie', 'idiom', 'song', 'book'];
         const DIFFICULTY_VALUES = ['easy', 'normal', 'hard'];
 
         // Load saved phrase preferences

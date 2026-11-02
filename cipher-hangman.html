@@ -2169,7 +2169,7 @@
             let difficulty = 'normal';
             try {
                 const opts = JSON.parse(sessionStorage.getItem('cipherHangmanPhraseOptions') || '{}');
-                if (['any', 'movie', 'proverb', 'idiom', 'song', 'book'].includes(opts.theme)) theme = opts.theme;
+                if (['any', 'movie', 'idiom', 'song', 'book'].includes(opts.theme)) theme = opts.theme;
                 if (['easy', 'normal', 'hard'].includes(opts.difficulty)) difficulty = opts.difficulty;
             } catch (e) {
                 console.warn('Failed to read phrase options, using defaults');
