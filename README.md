@@ -1,4 +1,4 @@
-[![Netlify Status](https://api.netlify.com/api/v1/badges/057ba1e2-b5bb-4e06-955d-91365adadf7b/deploy-status)](https://app.netlify.com/projects/hangman-cipher/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/0f7b6e9f-90b9-4af2-bb04-fcec241a8a69/deploy-status)](https://app.netlify.com/projects/hangman-cipher/deploys)
 
 This project was created for the course LNG302 Natural Language Processing at the ICU as a way to incorporate NLPs, display and explain entropy and surprisal in the context of bits, and to teach different ciphers. This was inspired by how intertwined linguistics, ciphers, and programming were throughout the last century.
 
