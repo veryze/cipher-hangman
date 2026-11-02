@@ -36,6 +36,10 @@ Requirements:
 - Identify the SOURCE, not a description of it: output the phrase itself, never the person/title/artist that said it
 - ONLY well-known, familiar sources: famous movie quotes, established idioms, famous song lyrics, famous book titles
 - NO invented phrases, NO obscure references
+- EXACT and COMPLETE wording: reproduce the real phrase word for word. NEVER abbreviate, truncate, or drop words
+  (HERES LOOKING instead of HERES LOOKING AT YOU KID is incomplete and will be rejected)
+- Vary your selection across calls: do NOT default to the most famous choice every time - pick another
+  well-known example instead of overused classics like TO BE OR NOT TO BE unless asked
 - Return ONLY the phrase, nothing else`;
 
 // Optional constraints appended to the system prompt
@@ -58,7 +62,7 @@ Format examples: TO KILL A MOCKINGBIRD / PRIDE AND PREJUDICE / THE CATCHER IN TH
 const DIFFICULTY_RULES = {
   normal: "DIFFICULTY NORMAL: prefer 15-60 characters total.",
   easy: `DIFFICULTY EASY: the phrase must be AT MOST 40 characters total (aim for 15-30); pick a very common, instantly recognizable phrase whose words repeat common letters (E, T, A, O) often. If your phrase is longer than 40 characters, it will be rejected.`,
-  hard: `DIFFICULTY HARD: the phrase must be AT LEAST 25 characters total (aim for 30-60). Pick a longer, rarer phrase with an unusual letter distribution - rare letters like J, K, Q, X, Z are welcome, and avoid phrases where the same common letter repeats many times. If your phrase is shorter than 25 characters, it will be rejected.`,
+  hard: `DIFFICULTY HARD: the phrase must be AT LEAST 25 characters total (aim for 30-60) while staying a REAL, verifiable, famous phrase. Never stretch, pad, split or invent text to reach the length - an invented or stitched-together sentence does NOT count and will be rejected. Realistic long sources to draw from: fully worded established idioms (NECESSITY IS THE MOTHER OF INVENTION / THE GRASS IS ALWAYS GREENER ON THE OTHER SIDE / A JOURNEY OF A THOUSAND MILES BEGINS WITH A SINGLE STEP), longer famous movie quotes, longer song lyric lines, and official long book titles (THE ADVENTURES OF HUCKLEBERRY FINN / THE CURIOUS INCIDENT OF THE DOG IN THE NIGHT TIME). Rare letters J, K, Q, X, Z are welcome ONLY when the real phrase genuinely contains them. If your phrase is shorter than 25 characters, it will be rejected.`,
 };
 
 function buildPhraseSystemPrompt(theme, difficulty) {
@@ -175,15 +179,22 @@ function callGroq(apiKey, systemPrompt, userPrompt, options = {}) {
   });
 }
 
-function callGroqForPhrase(apiKey, theme, difficulty) {
+function callGroqForPhrase(apiKey, theme, difficulty, recentPhrases = []) {
   // Add random seed to prompt for variety
   const seed = Math.random().toString(36).substring(7);
   const themeLabel = theme === "any" ? "any-theme" : theme;
-  const userPrompt = `Give me one ${themeLabel} phrase, difficulty: ${difficulty} (variation: ${seed}):`;
+  // Phrases the player has already seen: repeated requests must not repeat them
+  const avoidList = Array.isArray(recentPhrases) && recentPhrases.length
+    ? `\n\nThe player has ALREADY seen these phrases in earlier rounds. Output a DIFFERENT phrase - NOT any of these:\n- ${recentPhrases.join("\n- ")}`
+    : "";
+  const userPrompt = `Give me one ${themeLabel} phrase, difficulty: ${difficulty} (variation: ${seed}):${avoidList}`;
 
   return callGroq(apiKey, buildPhraseSystemPrompt(theme, difficulty), userPrompt, {
-    max_tokens: 64,
-    temperature: 0.9,
+    // Hard mode runs cooler: high temperature at length ≥25 + rare letters pushed
+    // the model towards invented phrases instead of real long ones (evaluated live)
+    temperature: difficulty === "hard" ? 0.7 : 0.9,
+    // 64 tokens truncated the odd long phrase; 80 leaves the full phrase room
+    max_tokens: 80,
     top_p: 0.9,
     presence_penalty: 0.5,
     frequency_penalty: 0.5,
@@ -422,6 +433,18 @@ export async function handler(event, context) {
   const ignoreDifficulty = theme === "song" && !!customBands;
   const effectiveDifficulty = ignoreDifficulty ? "normal" : difficulty;
 
+  // Phrases the player has already seen (optional, sent by the frontend) so the
+  // same phrase is never served twice in a session. Sanitised like the other
+  // client-supplied text; malformed entries are simply dropped.
+  let recentPhrases = [];
+  if (Array.isArray(body.recentPhrases)) {
+    recentPhrases = [...new Set(body.recentPhrases
+      .filter(p => typeof p === "string")
+      .map(p => p.toUpperCase().replace(/[^A-Z\s]/g, '').replace(/\s+/g, ' ').trim())
+      .filter(p => p && p.length <= 120))]
+      .slice(0, 20);
+  }
+
   // ---- Explain mode: post-game explanation of phrase + entropy ----
   if (body.mode === "explain") {
     const { phrase, cipher, outcome, entropy, surprisal } = body;
@@ -553,11 +576,15 @@ export async function handler(event, context) {
     try {
       // LLM fallback ignores custom bands (the model cannot search a site);
       // effectiveDifficulty already normalised when bands are in play
-      const raw = await callGroqForPhrase(apiKey, theme, effectiveDifficulty);
+      const raw = await callGroqForPhrase(apiKey, theme, effectiveDifficulty, recentPhrases);
       phrase = validatePhrase(raw, minLen, maxLen);
       if (phrase) {
-        // Book titles must not smuggle in attributions ("HAMLET BY SHAKESPEARE")
-        if (theme === "book" && /\bBY\b/.test(phrase)) {
+        // Already served earlier in this session: reject and retry like any other invalid output
+        if (recentPhrases.includes(phrase)) {
+          console.log(`Attempt ${attempts}: Rejected repeat of a recent phrase:`, phrase);
+          phrase = null;
+        } else if (theme === "book" && /\bBY\b/.test(phrase)) {
+          // Book titles must not smuggle in attributions ("HAMLET BY SHAKESPEARE")
           console.log(`Attempt ${attempts}: Book rejected (contains BY):`, phrase);
           phrase = null;
         }

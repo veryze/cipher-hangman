@@ -1,7 +1,7 @@
 # SKILL.md
 name: generate-phrase
 description: Hangman phrase generation + post-game explanations — runs DIRECTLY in OpenCode (agentspace), themed generation incl. real lyric fetching (custom bands), idiom bank; no Netlify call, no Groq API key needed
-version: 2.0.0
+version: 2.1.0
 
 tools:
   - name: generate_phrase
@@ -171,6 +171,10 @@ tools:
 # - Identify the SOURCE, not a description of it: output the phrase itself, never the person/title/artist that said it
 # - ONLY well-known, familiar sources: famous movie quotes, established idioms, famous song lyrics, famous book titles
 # - NO invented phrases, NO obscure references
+# - EXACT and COMPLETE wording: reproduce the real phrase word for word. NEVER abbreviate, truncate, or drop words
+#   (HERES LOOKING instead of HERES LOOKING AT YOU KID is incomplete and will be rejected)
+# - Vary your selection across calls: do NOT default to the most famous choice every time - pick another
+#   well-known example instead of overused classics like TO BE OR NOT TO BE unless asked
 # Theme overrides (from THEME_RULES; apply for the chosen theme):
 # - movie: ONLY the well-known MOVIE QUOTE itself. NEVER the film title, the character, or the word BY.
 #   Examples: MAY THE FORCE BE WITH YOU / ILL BE BACK / YOU CANNOT HANDLE THE TRUTH / SHOW ME THE MONEY
@@ -184,6 +188,9 @@ tools:
 # - normal: prefer 15-60 characters.
 # - hard: phrase must be AT LEAST 25 characters (aim 30-60); unusual letter distribution; rare letters J/K/Q/X/Z welcome.
 # Validate with validatePhrase(minLen, maxLen): default 10-70; easy maxLen=40; hard minLen=25.
+# hard additionally requires the phrase to stay REAL (never invent/pad to reach 25+ chars):
+# fully worded idioms, longer quotes, lyric lines or long book titles only.
+# If a recentPhrases list is passed, exclude those phrases exactly (same rejection rule as the endpoint).
 # If your phrase fails validation, regenerate (up to 3 total attempts). Report source: "agent-llm".
 #
 # ---- 4. EXPLAIN mode (+ optional origin data) ----

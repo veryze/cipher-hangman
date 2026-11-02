@@ -2283,10 +2283,23 @@
                 console.warn('Failed to read phrase options, using defaults');
             }
 
+            // Phrases already served this session, so the endpoint won't repeat them
+            let recentPhrases = [];
+            try { recentPhrases = JSON.parse(localStorage.getItem('recentPhrases') || '[]'); }
+            catch (e) { recentPhrases = []; }
+            if (!Array.isArray(recentPhrases)) recentPhrases = [];
+            recentPhrases = recentPhrases.filter(p => typeof p === 'string').slice(-20);
+
             const payload = { mode: 'phrase', theme, difficulty };
             if (customBands) payload.customBands = customBands;
+            if (recentPhrases.length) payload.recentPhrases = recentPhrases;
             const data = await fetchPhraseFrom(payload);
             if (!data) return null;
+
+            // Remember this phrase in the seen-list (kept across sessions, capped at 20)
+            const seen = [...new Set([...recentPhrases, String(data.phrase).toUpperCase()])].slice(-20);
+            try { localStorage.setItem('recentPhrases', JSON.stringify(seen)); }
+            catch (e) { /* storage can be full/blocked; repetition fallback is fine */ }
 
             // Stash provenance (theme picker + custom band + the song a lyric came
             // from) so the post-game explain call can state the origin as fact.
