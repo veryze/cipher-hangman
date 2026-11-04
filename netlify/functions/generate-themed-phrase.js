@@ -38,6 +38,8 @@ Requirements:
 - NO invented phrases, NO obscure references
 - EXACT and COMPLETE wording: reproduce the real phrase word for word. NEVER abbreviate, truncate, or drop words
   (HERES LOOKING instead of HERES LOOKING AT YOU KID is incomplete and will be rejected)
+- NEVER output these known-broken fragments (they are truncated quotes and always rejected):
+  HERES LOOKING RAY / HERE LOOKING / HERE AFTER
 - Vary your selection across calls: do NOT default to the most famous choice every time - pick another
   well-known example instead of overused classics like TO BE OR NOT TO BE unless asked
 - Return ONLY the phrase, nothing else`;
@@ -105,9 +107,18 @@ const TUTOR_CALL_OPTIONS = {
   frequency_penalty: 0.1,
 };
 
+// Known mangled/truncated outputs the model keeps producing (hard-blocked:
+// they pass format validation but are broken fragments of famous phrases).
+// Blocked in code regardless of theme, and named in the prompt so the model
+// stops wasting attempts on them.
+const BLOCKED_PHRASES = [
+  "HERES LOOKING RAY",
+  "HERE LOOKING",
+  "HERE AFTER",
+];
+
 // Canonical classics the LLM often mangles; used directly so they actually appear
-const CANONICAL_IDIOMS = [
-  "A STITCH IN TIME SAVES NINE",
+const CANONICAL_IDIOMS = [  "A STITCH IN TIME SAVES NINE",
   "ONCE IN A BLUE MOON",
   "A BLESSING IN DISGUISE",
   "BARKING UP THE WRONG TREE",
@@ -302,6 +313,9 @@ function validatePhrase(phrase, minLen = 10, maxLen = 70) {
   if (cleaned.length < minLen || cleaned.length > maxLen) return false;
   // Only A-Z and spaces
   if (!/^[A-Z\s]+$/.test(cleaned)) return false;
+  // Known mangled fragments of famous phrases (evaluated: the model keeps
+  // emitting some even when told not to) are hard-blocked everywhere
+  if (BLOCKED_PHRASES.includes(cleaned)) return false;
   // At least 2 words (more lenient)
   if (cleaned.split(" ").filter(w => w.length > 0).length < 2) return false;
   return cleaned;
@@ -587,14 +601,23 @@ export async function handler(event, context) {
 
   while (!phrase && attempts < maxAttempts) {
     attempts++;
+    // Groq free-tier rate limits reject rapid bursts: a short backoff between
+    // attempts (found by evaluation — 3 instant retries all 429'd together)
+    if (attempts > 1) {
+      await new Promise(r => setTimeout(r, 600 * (attempts - 1)));
+    }
     try {
       // LLM fallback ignores custom bands (the model cannot search a site);
       // effectiveDifficulty already normalised when bands are in play
       const raw = await callGroqForPhrase(apiKey, theme, effectiveDifficulty, recentPhrases);
       phrase = validatePhrase(raw, minLen, maxLen);
       if (phrase) {
+        // Known mangled fragments are hard-blocked no matter what
+        if (BLOCKED_PHRASES.includes(phrase)) {
+          console.log(`Attempt ${attempts}: Blocked known-mangled phrase:`, phrase);
+          phrase = null;
         // Already served earlier in this session: reject and retry like any other invalid output
-        if (recentPhrases.includes(phrase)) {
+        } else if (recentPhrases.includes(phrase)) {
           console.log(`Attempt ${attempts}: Rejected repeat of a recent phrase:`, phrase);
           phrase = null;
         } else if (theme === "book" && /\bBY\b/.test(phrase)) {

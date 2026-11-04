@@ -209,7 +209,20 @@ After Round 1, the following improvements were made:
 - to reduce repetition, a `recentPhrases` list was created, an explicit avoid-list added to the request, and the endpoint now rejects + retries the phrase if an already-seen phrase is returned (the same rule applies to the idiom bank and lyrics paths, not just the LLM). The last 20 phrases are stored in localStorage and sent with each request. 
 - to minimise mangled quotes, a new prompt rule was added to return exact, complete wording, plus max_tokens bump 64→80 to reduce mangling from a shorter max token count than the original phrase.
 - to get rid of hard mode inventing phrases, the prompt now mandates real long phrases with concrete examples, and hard mode runs at temperature 0.7 instead of 0.9. 
-- to fix the AI Decode Notes naming the whole custom band list instead of one band (e.g. "the custom band thornhill, sleep token"), the frontend now sends back `songBand` — the exact band the lyric actually came from — and the prompt names that single band; the list is only mentioned when the exact band is unknown.
+- to fix the AI Decode Notes naming the whole custom band list instead of one band (e.g. "the custom band thornhill, sleep token"), the frontend now sends back `songBand` - the exact band the lyric actually came from - and the prompt names that single band; the list is only mentioned when the exact band is unknown.
+- after a burst of 502s during unpaced testing (all 3 retries fired within a second, hitting Groq's free-tier rate limit together), a short backoff between retries was added.
+
+#### Round 2 results (re-run of the same evaluation against the redeployed function)
+
+| Check | Round 1 (before) | Round 2 (after) |
+|---|---|---|
+| Format + difficulty constraints (30 calls) | 30 / 30 | 30 / 30 |
+| Hard-mode LLM phrases that are real, verifiable quotes/idioms/titles | ~0 of 4 non-idiom attempts | ~25 of 31 across all tests (~80%) |
+| Repeats of an explicitly avoided phrase (10 requests with avoid-list) | not supported | 0 of 6 |
+| Song-theme provenance | 6 / 6 real lyrics | 6 / 6 real lyrics |
+| Custom-band attribution in explain mode | "the custom band thornhill, sleep token" (list as one blob) | "the song Arkangel by Thornhill" (single verified band + song) |
+
+Hard-mode examples actually served after the fix: THE CURIOUS INCIDENT OF THE DOG IN THE NIGHT TIME, A JOURNEY OF A THOUSAND MILES BEGINS WITH A SINGLE STEP, THE GRASS IS ALWAYS GREENER ON THE OTHER SIDE, NECESSITY IS THE MOTHER OF INVENTION, ALL WORK AND NO PLAY MAKES JACK A DULL BOY, THERE IS NO PLACE LIKE HOME. Remaining limitations: without the avoid-list the model still repeats its favourites (THE CURIOUS INCIDENT... appeared 5 times in 10 fresh requests - the fix needs the frontend list, which the game sends), ~20% of hard-mode LLM phrases are still invented-sounding, and one mangled quote survived the new wording rule (HERES LOOKING RAY). Repetition *without* the avoid-list is unchanged by design - variety for a fresh session relies on the model alone.
 
 
 
