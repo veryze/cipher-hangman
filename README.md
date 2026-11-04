@@ -232,4 +232,32 @@ Remaining limitations: without the avoid-list the model still repeats its favour
 
 
 
+
+### Round 3
+
+After Round 2, the following changes were made: 
+- known mangled quote fragments are now hard-blocked in code (`BLOCKED_PHRASES`: HERES LOOKING RAY / HERE LOOKING / HERE AFTER) - rejected inside `validatePhrase` no matter the theme, and also named in the system prompt so the model stops wasting attempts on them.
+- a retry backoff (600ms / 1.2s between the 3 phrase attempts) so Groq's free-tier rate limits cannot kill all attempts at once during bursts.
+- a new **Custom theme** in the menu: the player types their own theme free-text (max 60 chars, persisted like the cipher prefs); the endpoint builds a dynamic THEME OVERRIDE from it (still a real, famous phrase that fits, never an invented sentence), the game stores it as provenance, and the AI Decode Notes receive it as origin context.
+- the AI Decode Notes for custom themes were reworded to name the phrase's actual source when known (e.g. the character or work a catchphrase comes from) instead of generic "connected to the theme" filler.
+
+#### Round 3 results (re-run of the same evaluation)
+
+| Check | Round 2 (before) | Round 3 (after) |
+|---|---|---|
+| Format + difficulty constraints (30 calls, paced) | 30 / 30 | 30 / 30 |
+| Mangled fragments (HERES LOOKING RAY etc.) | 5 across 22 movie-easy probe calls | 0 across 50 calls this round (6 of them movie-theme, all difficulties) |
+| Custom band attribution | "the song Arkangel by Thornhill" | unchanged (6 / 6 real lyrics again) |
+| Custom theme request | not supported | accepted: space exploration → TO INFINITY AND BEYOND, coffee → COFFEE TIME (phrases fitting the player's theme) |
+
+**Repetition test - 10 identical mixed-difficulty requests** (theme any; easy/normal/hard cycled):
+- without the avoid-list: 7 / 10 unique - TO BE OR NOT TO BE and MAY THE FORCE BE WITH YOU each appeared twice. The model still gravitates to its favourites on identical fresh requests, as expected.
+- with the avoid-list sent (the game always sends it): **10 / 10 unique, 0 repeats of any avoided phrase, 0 errors** - and all returned phrases were still real (THE QUICK BROWN FOX..., A JOURNEY OF A THOUSAND MILES..., NO PAIN NO GAIN, HIT THE ROAD JACK...).
+- hard-mode quality held up across the mixed difficulties: 16 of 18 hard-mode LLM phrases across all Round 3 runs were real, verifiable long phrases.
+
+Remaining limitations: some easy/normal LLM phrases are weak as "famous" sources (WAS THIS PORK CHOP, I WANT TO PLAY DICE, COFFEE TIME passed validation but are not famous quotes/titles). The custom-theme decode notes stay generic for now: the stronger source-naming prompts are committed (c148880 / bd63004) but Netlify has not deployed them yet at the time of this round's testing.
+
+
+
+
 <!--- https://app.netlify.com/projects/hangmancipherfunc/overview --->
