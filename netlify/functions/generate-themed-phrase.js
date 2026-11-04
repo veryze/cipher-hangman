@@ -66,7 +66,7 @@ Format examples: TO KILL A MOCKINGBIRD / PRIDE AND PREJUDICE / THE CATCHER IN TH
 
 const DIFFICULTY_RULES = {
   normal: "DIFFICULTY NORMAL: prefer 15-60 characters total.",
-  easy: `DIFFICULTY EASY: the phrase must be AT MOST 40 characters total (aim for 15-30); pick a very common, instantly recognizable phrase whose words repeat common letters (E, T, A, O) often. If your phrase is longer than 40 characters, it will be rejected.`,
+  easy: `DIFFICULTY EASY: the phrase must be AT MOST 40 characters total (aim for 10-30); pick a very common, instantly recognizable phrase whose words repeat common letters (E, T, A, O) often. If your phrase is longer than 40 characters, it will be rejected.`,
   hard: `DIFFICULTY HARD: the phrase must be AT LEAST 25 characters total (aim for 30-60) while staying a REAL, verifiable, famous phrase. Never stretch, pad, split or invent text to reach the length - an invented or stitched-together sentence does NOT count and will be rejected. Realistic long sources to draw from: fully worded established idioms (NECESSITY IS THE MOTHER OF INVENTION / THE GRASS IS ALWAYS GREENER ON THE OTHER SIDE / A JOURNEY OF A THOUSAND MILES BEGINS WITH A SINGLE STEP), longer famous movie quotes, longer song lyric lines, and official long book titles (THE ADVENTURES OF HUCKLEBERRY FINN / THE CURIOUS INCIDENT OF THE DOG IN THE NIGHT TIME). Rare letters J, K, Q, X, Z are welcome ONLY when the real phrase genuinely contains them. If your phrase is shorter than 25 characters, it will be rejected.`,
 };
 
@@ -74,7 +74,7 @@ function buildPhraseSystemPrompt(theme, difficulty, customTheme) {
   let themeRules = THEME_RULES[theme] || "";
   if (theme === "custom" && customTheme) {
     themeRules = `THEME OVERRIDE: the player picked their OWN theme: "${customTheme}".
-Output ONE well-known, famous phrase that fits this theme - a real quote, saying, idiom, song lyric line or title people know that is clearly connected to it.
+Output ONE well-known, famous phrase or keyword that fits this theme - a real quote, saying, idiom, song lyric line, item, or title people know that is clearly connected to it.
 Still follow every other rule: it must be a REAL phrase (NO invented sentences to fit the theme) and contain NO theme label or explanation.`;
   }
   const extras = [themeRules, DIFFICULTY_RULES[difficulty] || ""].filter(Boolean);
@@ -259,7 +259,7 @@ function buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand, cus
     return `PHRASE ORIGIN (use as fact): a well-known SONG LYRIC line — the artist is not verified, so phrase its origin generally without inventing a song.${via}`;
   }
   if (theme === "custom" && customTheme) {
-    return `PHRASE ORIGIN (use as fact): a well-known phrase connected to the custom theme "${customTheme}" that the player picked in the menu.`;
+    return `PHRASE ORIGIN (use as fact): a well-known phrase or keyword connected to the custom theme "${customTheme}" that the player picked in the menu.`;
   }
   const label = {
     movie: "a well-known MOVIE QUOTE",
