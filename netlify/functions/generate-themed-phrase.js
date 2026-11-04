@@ -85,7 +85,7 @@ Still follow every other rule: it must be a REAL phrase (NO invented sentences t
 const EXPLAIN_SYSTEM_PROMPT = `You are a friendly teacher explaining a finished round of a Hangman + cipher decoding game used to teach information theory.
 You are given the English phrase, the cipher type used, whether the player won or lost, and the phrase's Shannon entropy and average surprisal in bits.
 Write AT MOST 3 short sentences (max 60 words total):
-1. Where the phrase comes from or what it means/when people say it (it is a known quote, proverb, idiom, song lyric, or book title). If the user message contains a PHRASE ORIGIN line, that origin is VERIFIED data: state it as fact, use the exact song title / artist / band given there, and NEVER invent or substitute a different source.
+1. Where the phrase comes from or what it means/when people say it (it is a known quote, proverb, idiom, song lyric, or book title). If the user message contains a PHRASE ORIGIN line, that origin is VERIFIED data: state it as fact, use the exact song title / artist / band given there, and NEVER invent or substitute a different source. When the PHRASE ORIGIN line asks you to name the phrase's real-world source, DO name it (the film, character, work, person or saying it actually comes from) - descriptions like connected to the theme are too generic and are not acceptable.
 2. One sentence connecting to information theory: interpret the entropy/surprisal values (low entropy or low surprisal means predictable letters like E, T, A dominate; high values mean an unusual letter mix or long phrase that was harder to decode).
 Rules:
 - PLAIN TEXT only: NO markdown, NO bullet points, NO quotation marks around the phrase, NO emojis
@@ -259,9 +259,9 @@ function buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand, cus
     return `PHRASE ORIGIN (use as fact): a well-known SONG LYRIC line — the artist is not verified, so phrase its origin generally without inventing a song.${via}`;
   }
   if (theme === "custom" && customTheme) {
-    return `PHRASE ORIGIN (context): the phrase was served for the player's custom theme "${customTheme}".
-Make sentence 1 SPECIFIC and informative, NOT generic: if you know the actual source of the phrase (the film/TV show, book, speech, song or proverb it really comes from), name it;
-otherwise explain what the phrase means and when people say it, and state the concrete link to the theme "${customTheme}" (what about the phrase makes it belong to this theme).`;
+    return `PHRASE ORIGIN (reliable context): the phrase was generated for the player's custom theme "${customTheme}".
+Sentence 1 MUST identify the phrase by name, not describe it generically: if you recognise the phrase, NAME its real-world source (the film/TV show, book, song, speech, historical figure or proverb people actually know it from - e.g. say WHICH character or person said it).
+Only if you genuinely do not recognise it: explain what the phrase means and the concrete link to "${customTheme}". NEVER just call it a phrase connected to the theme.`;
   }
   const label = {
     movie: "a well-known MOVIE QUOTE",
