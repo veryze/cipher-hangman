@@ -141,6 +141,8 @@ Different difficulty modes and themes were also added, to make the game more fun
 
 A chat-based AI Decode Helper (🤖 button, `tutor` mode on the endpoint) was later added so players can ask for decoding strategy mid-round; it receives only a masked view of the progress so it can teach but never spoil the answer, and it only appears while *Use AI Phrases* is enabled.
 
+Three tests were run via OpenCode to check edge cases, errors, and issues; the results are below. New implementations based on the feedback include a custom theme as well as a phrase repeater preventor. 
+
 I got two beta testers to repeatedly try my code throughout, and implemented their feedback to make my game more intuitive, user friendly, and fun. 
 
 ---
@@ -167,7 +169,8 @@ I got two beta testers to repeatedly try my code throughout, and implemented the
 - The temperature was too high (made up idioms)
 - The highlighting in the Vigenère cipher grid didn't remain when the letter was clicked and the mouse moved away
 - The Netlify logo covered the hint text on the Vigenère cipher grid
-- AI LLM implementation was lacking - improved by adding post-game explanations and a theme picker, as well as a chatbot to help users. 
+- AI LLM implementation was lacking - improved by adding post-game explanations and a theme picker, as well as a chatbot to help users.
+- A custom theme was also added to promote AI implementation. 
 
 
 ---
