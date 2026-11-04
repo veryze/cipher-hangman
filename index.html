@@ -527,6 +527,15 @@
                             <span>Book titles</span>
                         </label>
                     </div>
+                    <div class="cipher-option">
+                        <label>
+                            <input type="radio" name="phraseTheme" value="custom">
+                            <span>Custom <span class="cipher-desc">(type your own theme)</span></span>
+                        </label>
+                    </div>
+                    <div class="custom-bands-row" id="customThemeRow" style="display: none;">
+                        <textarea id="customThemeInput" rows="2" maxlength="60" placeholder="Type a theme, e.g. space exploration, ancient Rome, coffee" style="display: none;"></textarea>
+                    </div>
                 </div>
 
                 <div class="cipher-category">
@@ -575,8 +584,8 @@
         };
 
         // Phrase theme/difficulty preferences (persisted in localStorage)
-        let phrasePrefs = { theme: 'any', difficulty: 'normal', customBands: { enabled: false, list: '' } };
-        const THEME_VALUES = ['any', 'movie', 'idiom', 'song', 'book'];
+        let phrasePrefs = { theme: 'any', difficulty: 'normal', customBands: { enabled: false, list: '' }, customTheme: '' };
+        const THEME_VALUES = ['any', 'movie', 'idiom', 'song', 'book', 'custom'];
         const DIFFICULTY_VALUES = ['easy', 'normal', 'hard'];
 
         // Load saved phrase preferences
@@ -593,12 +602,16 @@
                             phrasePrefs.customBands.list = parsed.customBands.list.slice(0, 150);
                         }
                     }
+                    if (typeof parsed.customTheme === 'string') {
+                        phrasePrefs.customTheme = parsed.customTheme.slice(0, 60);
+                    }
                 } catch (e) {
                     console.warn('Failed to parse saved phrase preferences');
                 }
             }
             updatePhraseRadios();
             updateCustomBandsUI();
+            updateCustomThemeUI();
         }
 
         function savePhrasePrefs() {
@@ -609,6 +622,7 @@
                     enabled: phrasePrefs.customBands.enabled,
                     list: phrasePrefs.customBands.list.slice(0, 150),
                 },
+                customTheme: phrasePrefs.customTheme.slice(0, 60),
             };
             localStorage.setItem('cipherHangmanPhrasePrefs', JSON.stringify(toSave));
         }
@@ -620,6 +634,18 @@
             document.querySelectorAll('input[name="phraseDifficulty"]').forEach(radio => {
                 radio.checked = radio.value === phrasePrefs.difficulty;
             });
+        }
+
+        // Show/hide the custom theme text box (Custom theme only)
+        function updateCustomThemeUI() {
+            const row = document.getElementById('customThemeRow');
+            const input = document.getElementById('customThemeInput');
+            if (!row || !input) return;
+
+            const isCustom = phrasePrefs.theme === 'custom';
+            row.style.display = isCustom ? 'block' : 'none';
+            input.style.display = isCustom ? 'block' : 'none';
+            input.value = phrasePrefs.customTheme;
         }
 
         // Show/hide the custom bands block and sync difficulty availability
@@ -727,6 +753,11 @@
                 if (e.target.checked) {
                     phrasePrefs.theme = e.target.value;
                     updateCustomBandsUI();
+                    updateCustomThemeUI();
+                    if (e.target.value === 'custom') {
+                        const input = document.getElementById('customThemeInput');
+                        if (input && !input.value.trim()) input.focus();
+                    }
                 }
             });
         });
@@ -752,6 +783,11 @@
         });
         document.getElementById('customBandsInput').addEventListener('input', (e) => {
             phrasePrefs.customBands.list = e.target.value;
+        });
+
+        // Custom theme (Custom theme): free-text theme for the LLM
+        document.getElementById('customThemeInput').addEventListener('input', (e) => {
+            phrasePrefs.customTheme = e.target.value;
         });
 
         // Start game with selected ciphers and phrase options
@@ -792,12 +828,13 @@
                 vigenere: true,
                 affine: true
             };
-            phrasePrefs = { theme: 'any', difficulty: 'normal', customBands: { enabled: false, list: '' } };
+            phrasePrefs = { theme: 'any', difficulty: 'normal', customBands: { enabled: false, list: '' }, customTheme: '' };
             saveCipherPrefs();
             savePhrasePrefs();
             updateCheckboxes();
             updatePhraseRadios();
             updateCustomBandsUI();
+            updateCustomThemeUI();
         });
 
         // Initialize

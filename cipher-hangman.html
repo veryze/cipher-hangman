@@ -2271,13 +2271,19 @@
             let theme = 'any';
             let difficulty = 'normal';
             let customBands = null;
+            let customTheme = '';
             try {
                 const opts = JSON.parse(sessionStorage.getItem('cipherHangmanPhraseOptions') || '{}');
-                if (['any', 'movie', 'idiom', 'song', 'book'].includes(opts.theme)) theme = opts.theme;
+                if (['any', 'movie', 'idiom', 'song', 'book', 'custom'].includes(opts.theme)) theme = opts.theme;
                 if (['easy', 'normal', 'hard'].includes(opts.difficulty)) difficulty = opts.difficulty;
                 if (theme === 'song' && opts.customBands && opts.customBands.enabled
                     && typeof opts.customBands.list === 'string' && opts.customBands.list.trim()) {
                     customBands = opts.customBands.list.trim().slice(0, 150);
+                }
+                // Custom theme: free-text theme typed in the menu; empty text falls back to 'any'
+                if (theme === 'custom') {
+                    customTheme = typeof opts.customTheme === 'string' ? opts.customTheme.trim().slice(0, 60) : '';
+                    if (!customTheme) theme = 'any';
                 }
             } catch (e) {
                 console.warn('Failed to read phrase options, using defaults');
@@ -2292,6 +2298,7 @@
 
             const payload = { mode: 'phrase', theme, difficulty };
             if (customBands) payload.customBands = customBands;
+            if (theme === 'custom') payload.customTheme = customTheme;
             if (recentPhrases.length) payload.recentPhrases = recentPhrases;
             const data = await fetchPhraseFrom(payload);
             if (!data) return null;
@@ -2307,6 +2314,7 @@
             lastPhraseMeta = {
                 theme,
                 customBands,
+                customTheme,
                 songArtist: data.song && data.song.artist,
                 songTitle: data.song && data.song.title,
                 // The exact band (from the player's custom list) that this song
@@ -2344,6 +2352,7 @@
                         // Picker state + lyric provenance (verified origin data):
                         theme: lastPhraseMeta && lastPhraseMeta.theme,
                         customBands: lastPhraseMeta && lastPhraseMeta.customBands,
+                        customTheme: lastPhraseMeta && lastPhraseMeta.customTheme,
                         songArtist: lastPhraseMeta && lastPhraseMeta.songArtist,
                         songTitle: lastPhraseMeta && lastPhraseMeta.songTitle,
                         songBand: lastPhraseMeta && lastPhraseMeta.songBand,

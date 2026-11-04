@@ -59,6 +59,9 @@ Format examples: LET IT BE / HERE COMES THE SUN / IM WALKING ON SUNSHINE / WE WI
   book: `THEME OVERRIDE: output ONLY the exact title of a well-known published BOOK.
 Add NOTHING: no author name, no BY + name, no series numbering (BOOK ONE), no subtitle that is not part of the title, and NEVER a saying or quote instead of a title.
 Format examples: TO KILL A MOCKINGBIRD / PRIDE AND PREJUDICE / THE CATCHER IN THE RYE / JANE EYRE`,
+  // Custom theme: the actual override is built dynamically from the user's text
+  // (see buildPhraseSystemPrompt); this key just marks 'custom' as recognised
+  custom: "",
 };
 
 const DIFFICULTY_RULES = {
@@ -67,8 +70,14 @@ const DIFFICULTY_RULES = {
   hard: `DIFFICULTY HARD: the phrase must be AT LEAST 25 characters total (aim for 30-60) while staying a REAL, verifiable, famous phrase. Never stretch, pad, split or invent text to reach the length - an invented or stitched-together sentence does NOT count and will be rejected. Realistic long sources to draw from: fully worded established idioms (NECESSITY IS THE MOTHER OF INVENTION / THE GRASS IS ALWAYS GREENER ON THE OTHER SIDE / A JOURNEY OF A THOUSAND MILES BEGINS WITH A SINGLE STEP), longer famous movie quotes, longer song lyric lines, and official long book titles (THE ADVENTURES OF HUCKLEBERRY FINN / THE CURIOUS INCIDENT OF THE DOG IN THE NIGHT TIME). Rare letters J, K, Q, X, Z are welcome ONLY when the real phrase genuinely contains them. If your phrase is shorter than 25 characters, it will be rejected.`,
 };
 
-function buildPhraseSystemPrompt(theme, difficulty) {
-  const extras = [THEME_RULES[theme] || "", DIFFICULTY_RULES[difficulty] || ""].filter(Boolean);
+function buildPhraseSystemPrompt(theme, difficulty, customTheme) {
+  let themeRules = THEME_RULES[theme] || "";
+  if (theme === "custom" && customTheme) {
+    themeRules = `THEME OVERRIDE: the player picked their OWN theme: "${customTheme}".
+Output ONE well-known, famous phrase that fits this theme - a real quote, saying, idiom, song lyric line or title people know that is clearly connected to it.
+Still follow every other rule: it must be a REAL phrase (NO invented sentences to fit the theme) and contain NO theme label or explanation.`;
+  }
+  const extras = [themeRules, DIFFICULTY_RULES[difficulty] || ""].filter(Boolean);
   if (!extras.length) return SYSTEM_PROMPT;
   return SYSTEM_PROMPT + "\n" + extras.join("\n");
 }
@@ -190,7 +199,7 @@ function callGroq(apiKey, systemPrompt, userPrompt, options = {}) {
   });
 }
 
-function callGroqForPhrase(apiKey, theme, difficulty, recentPhrases = []) {
+function callGroqForPhrase(apiKey, theme, difficulty, recentPhrases = [], customTheme) {
   // Add random seed to prompt for variety
   const seed = Math.random().toString(36).substring(7);
   const themeLabel = theme === "any" ? "any-theme" : theme;
@@ -200,7 +209,7 @@ function callGroqForPhrase(apiKey, theme, difficulty, recentPhrases = []) {
     : "";
   const userPrompt = `Give me one ${themeLabel} phrase, difficulty: ${difficulty} (variation: ${seed}):${avoidList}`;
 
-  return callGroq(apiKey, buildPhraseSystemPrompt(theme, difficulty), userPrompt, {
+  return callGroq(apiKey, buildPhraseSystemPrompt(theme, difficulty, customTheme), userPrompt, {
     // Hard mode runs cooler: high temperature at length ≥25 + rare letters pushed
     // the model towards invented phrases instead of real long ones (evaluated live)
     temperature: difficulty === "hard" ? 0.7 : 0.9,
@@ -230,7 +239,7 @@ function parseBandList(value) {
 // verified-origin line for the explanation prompt. Backend callers that do not
 // pass these fields (e.g. the frontend after an offline-bank fallback) keep the
 // model's old behavior of inferring the origin itself.
-function buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand }) {
+function buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand, customTheme }) {
   const isSong = theme === "song";
   if (isSong && songArtist && songTitle) {
     // songBand (when known) is the ONE band from the player's custom list that
@@ -249,6 +258,9 @@ function buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand }) {
       : "";
     return `PHRASE ORIGIN (use as fact): a well-known SONG LYRIC line — the artist is not verified, so phrase its origin generally without inventing a song.${via}`;
   }
+  if (theme === "custom" && customTheme) {
+    return `PHRASE ORIGIN (use as fact): a well-known phrase connected to the custom theme "${customTheme}" that the player picked in the menu.`;
+  }
   const label = {
     movie: "a well-known MOVIE QUOTE",
     idiom: "an established English IDIOM",
@@ -257,8 +269,8 @@ function buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand }) {
   return `PHRASE ORIGIN (use as fact): ${label || "a well-known famous phrase"}.`;
 }
 
-function callGroqForExplanation(apiKey, { phrase, cipher, outcome, entropy, surprisal, theme, bands, songArtist, songTitle, songBand }) {
-  const origin = buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand });
+function callGroqForExplanation(apiKey, { phrase, cipher, outcome, entropy, surprisal, theme, bands, songArtist, songTitle, songBand, customTheme }) {
+  const origin = buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand, customTheme });
   const userPrompt = [
     `Phrase: "${phrase}"`,
     origin,
@@ -433,7 +445,10 @@ export async function handler(event, context) {
   }
 
   // Ignore unrecognized values (same fallbacks as the frontend)
-  const theme = THEME_RULES[body.theme] !== undefined ? body.theme : "any";
+  // Custom theme needs non-empty free text; otherwise it falls back like an unknown value
+  const customThemeRaw = sanitizeExplainText(body.customTheme, 60);
+  const theme = THEME_RULES[body.theme] !== undefined && (body.theme !== "custom" || customThemeRaw)
+    ? body.theme : "any";
   const difficulty = DIFFICULTY_RULES[body.difficulty] !== undefined ? body.difficulty : "normal";
 
   const CORS_HEADERS = {
@@ -482,6 +497,7 @@ export async function handler(event, context) {
     // absent fields simply fall back to the model inferring the origin itself.
     const explainTheme = THEME_RULES[body.theme] !== undefined ? body.theme : null;
     const explainBands = explainTheme === "song" ? parseBandList(body.customBands) : null;
+    const explainCustomTheme = explainTheme === "custom" ? sanitizeExplainText(body.customTheme, 60) : "";
     const songArtist = sanitizeExplainText(body.songArtist, 60);
     const songTitle = sanitizeExplainText(body.songTitle, 60);
     const songBand = sanitizeExplainText(body.songBand, 60);
@@ -498,6 +514,7 @@ export async function handler(event, context) {
         songArtist,
         songTitle,
         songBand,
+        customTheme: explainCustomTheme,
       });
       const explanation = raw ? raw.replace(/^["'\s]+|["'\s]+$/g, '') : "";
       if (!explanation || explanation.length < 20 || explanation.length > 600) {
@@ -609,7 +626,7 @@ export async function handler(event, context) {
     try {
       // LLM fallback ignores custom bands (the model cannot search a site);
       // effectiveDifficulty already normalised when bands are in play
-      const raw = await callGroqForPhrase(apiKey, theme, effectiveDifficulty, recentPhrases);
+      const raw = await callGroqForPhrase(apiKey, theme, effectiveDifficulty, recentPhrases, customThemeRaw);
       phrase = validatePhrase(raw, minLen, maxLen);
       if (phrase) {
         // Known mangled fragments are hard-blocked no matter what

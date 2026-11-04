@@ -1,7 +1,7 @@
 # SKILL.md
 name: generate-phrase
 description: Hangman phrase generation + post-game explanations — runs DIRECTLY in OpenCode (agentspace), themed generation incl. real lyric fetching (custom bands), idiom bank; no Netlify call, no Groq API key needed
-version: 2.1.0
+version: 2.2.0
 
 tools:
   - name: generate_phrase
@@ -11,14 +11,18 @@ tools:
       properties:
         theme:
           type: string
-          description: Theme of the phrase (chosen in the menu's Phrase Theme picker). any mixes all types. song = REAL lyric lines fetched from lyrics.ovh (keyless); idiom = drawn from a canonical idiom bank half the time; book = titles only (BY-author attributions rejected).
-          enum: [any, movie, idiom, song, book]
+          description: Theme of the phrase (chosen in the menu's Phrase Theme picker). any mixes all types. custom = the player typed their own theme free-text (custom_theme parameter). song = REAL lyric lines fetched from lyrics.ovh (keyless); idiom = drawn from a canonical idiom bank half the time; book = titles only (BY-author attributions rejected).
+          enum: [any, movie, idiom, song, book, custom]
           default: any
         difficulty:
           type: string
           description: Difficulty of the phrase (chosen in the menu's Phrase Difficulty picker). easy = at most 40 chars, normal = default, hard = at least 25 chars with more unusual letters (enforced by validation, not just generation).
           enum: [easy, normal, hard]
           default: normal
+        custom_theme:
+          type: string
+          description: ONLY when theme = custom. The player's free-text theme (max 60 chars, e.g. "space exploration"). The output must still be a REAL famous phrase that fits it; empty text falls back to any.
+          default: null
         custom_bands:
           type: string
           description: Custom bands (Song theme only; comma-separated, max 8). Lyric lines are then taken from songs by those bands via the lyrics.ovh suggest endpoint. DIFFICULTY IS IGNORED for this path.
@@ -182,6 +186,8 @@ tools:
 #   no series numbering, no subtitle unless part of the title, never a saying instead of a title.
 #   Any output containing the word BY is rejected — regenerate.
 #   Examples: TO KILL A MOCKINGBIRD / PRIDE AND PREJUDICE / THE CATCHER IN THE RYE / JANE EYRE
+# - custom (custom_theme given): ONE real, famous phrase connected to the player's own theme
+#   (a quote, saying, lyric line or title) — still never an invented sentence.
 # - any: mix freely across the above and quotes/lyrics/idioms. (The old "proverb" theme was removed.)
 # Difficulty checkpoints (enforced by validation, not just generation — re-run validatePhrase on yourself):
 # - easy: phrase must be AT MOST 40 characters (aim 15-30); common, instantly recognizable; common letters (E, T, A, O) often.
