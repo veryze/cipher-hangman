@@ -550,18 +550,23 @@ export async function handler(event, context) {
   let phrase = null;
   let source = "llm";
 
-  // Idioms: guarantee canonical classics half of the time
+  // Idioms: guarantee canonical classics half of the time (drawing only ones the
+  // player has not seen yet; if all remaining idioms are seen, fall through to the LLM)
   if (theme === "idiom" && Math.random() < 0.5) {
-    const pick = CANONICAL_IDIOMS[Math.floor(Math.random() * CANONICAL_IDIOMS.length)];
-    phrase = validatePhrase(pick, minLen, maxLen);
-    if (phrase) source = "idiom-bank";
+    const fresh = CANONICAL_IDIOMS.filter(p => !recentPhrases.includes(p));
+    if (fresh.length) {
+      const pick = fresh[Math.floor(Math.random() * fresh.length)];
+      phrase = validatePhrase(pick, minLen, maxLen);
+      if (phrase) source = "idiom-bank";
+    }
   }
 
-  // Songs: real lyric lines fetched from a lyrics website
+  // Songs: real lyric lines fetched from a lyrics website (a snippet already
+  // served this session falls back to the LLM rather than repeating)
   let songInfo = null; // provenance for the explain mode (theme === song)
   if (!phrase && theme === "song") {
     const lyric = await fetchLyricPhrase(minLen, maxLen, customBands, ignoreDifficulty ? 2 : 1);
-    if (lyric) {
+    if (lyric && !recentPhrases.includes(lyric.snippet)) {
       phrase = lyric.snippet;
       songInfo = lyric.song;
       source = ignoreDifficulty ? "lyrics-ovh-custom" : "lyrics-ovh";

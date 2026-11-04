@@ -206,9 +206,9 @@ Improvement ideas, if continued: shortlist prompts against a fixed evaluation se
 ### Round 2
 
 After Round 1, the following improvements were made: 
-- to reduce repetition, a `recentPhrases` list was created, an explicit avoid-list added to the request, and the model now rejects + retries the phrase if an already-seen phrase is returned. The last 20 phrases are stored. 
+- to reduce repetition, a `recentPhrases` list was created, an explicit avoid-list added to the request, and the endpoint now rejects + retries the phrase if an already-seen phrase is returned (the same rule applies to the idiom bank and lyrics paths, not just the LLM). The last 20 phrases are stored in localStorage and sent with each request. 
 - to minimise mangled quotes, a new prompt rule was added to return exact, complete wording, plus max_tokens bump 64→80 to reduce mangling from a shorter max token count than the original phrase.
-- to get rid fo hard mode inventing phrases, the prompt now mandates real long phrases with concrete examples, and hard mode runs at temperature 0.7 instead of 0.9. 
+- to get rid of hard mode inventing phrases, the prompt now mandates real long phrases with concrete examples, and hard mode runs at temperature 0.7 instead of 0.9. 
 
 
 
