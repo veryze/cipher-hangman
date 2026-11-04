@@ -196,8 +196,10 @@ tools:
 # ---- 4. EXPLAIN mode (+ optional origin data) ----
 # When asked to explain a finished round (do NOT call the endpoint; write it yourself), you are given
 # phrase, cipher, outcome ("win"/"lose"), entropy (Shannon entropy of the letter distribution),
-# surprisal (average per letter), and optionally provenance: theme, customBands, songArtist/songTitle
-# (the actual song the lyric line was taken from — verified data).
+# surprisal (average per letter), and optionally provenance: theme, customBands, songArtist/songTitle,
+# and songBand (the ONE band from the player's custom list that the song actually came from —
+# name that single band, never the whole comma-separated list; the actual song the lyric line was
+# taken from — verified data).
 # Write AT MOST 3 short sentences (max 60 words total):
 # 1. Where the phrase comes from or what it means/when people say it. If a PHRASE ORIGIN was supplied
 #    (theme = type; songArtist/songTitle = exact song/artist), that origin is VERIFIED: state it as

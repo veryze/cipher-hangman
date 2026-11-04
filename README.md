@@ -209,6 +209,7 @@ After Round 1, the following improvements were made:
 - to reduce repetition, a `recentPhrases` list was created, an explicit avoid-list added to the request, and the endpoint now rejects + retries the phrase if an already-seen phrase is returned (the same rule applies to the idiom bank and lyrics paths, not just the LLM). The last 20 phrases are stored in localStorage and sent with each request. 
 - to minimise mangled quotes, a new prompt rule was added to return exact, complete wording, plus max_tokens bump 64→80 to reduce mangling from a shorter max token count than the original phrase.
 - to get rid of hard mode inventing phrases, the prompt now mandates real long phrases with concrete examples, and hard mode runs at temperature 0.7 instead of 0.9. 
+- to fix the AI Decode Notes naming the whole custom band list instead of one band (e.g. "the custom band thornhill, sleep token"), the frontend now sends back `songBand` — the exact band the lyric actually came from — and the prompt names that single band; the list is only mentioned when the exact band is unknown.
 
 
 

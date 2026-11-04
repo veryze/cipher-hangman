@@ -219,15 +219,22 @@ function parseBandList(value) {
 // verified-origin line for the explanation prompt. Backend callers that do not
 // pass these fields (e.g. the frontend after an offline-bank fallback) keep the
 // model's old behavior of inferring the origin itself.
-function buildExplainOrigin({ theme, bands, songArtist, songTitle }) {
+function buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand }) {
   const isSong = theme === "song";
   if (isSong && songArtist && songTitle) {
-    const via = bands && bands.length ? ` (custom band: ${bands.join(", ")})` : "";
+    // songBand (when known) is the ONE band from the player's custom list that
+    // the song actually came from — name it alone so the model never treats the
+    // full comma-separated list as a single band name
+    const via = songBand
+      ? ` (a line by ${songBand}, chosen from the player's custom band list)`
+      : bands && bands.length
+        ? ` (from one of the player's custom bands: ${bands.join(", ")})`
+        : "";
     return `PHRASE ORIGIN (verified - use as fact): a REAL lyric line from the song "${songTitle}" by ${songArtist}${via}.`;
   }
   if (isSong) {
     const via = bands && bands.length
-      ? ` Mention it comes from a song by ${bands.join(", ")} if it fits naturally; do NOT name a specific song or artist.`
+      ? ` Mention it comes from a song by ONE of these bands the player chose: ${bands.join(", ")} — name whichever fits the line, never the whole list together, and do NOT name a specific song.`
       : "";
     return `PHRASE ORIGIN (use as fact): a well-known SONG LYRIC line — the artist is not verified, so phrase its origin generally without inventing a song.${via}`;
   }
@@ -239,8 +246,8 @@ function buildExplainOrigin({ theme, bands, songArtist, songTitle }) {
   return `PHRASE ORIGIN (use as fact): ${label || "a well-known famous phrase"}.`;
 }
 
-function callGroqForExplanation(apiKey, { phrase, cipher, outcome, entropy, surprisal, theme, bands, songArtist, songTitle }) {
-  const origin = buildExplainOrigin({ theme, bands, songArtist, songTitle });
+function callGroqForExplanation(apiKey, { phrase, cipher, outcome, entropy, surprisal, theme, bands, songArtist, songTitle, songBand }) {
+  const origin = buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand });
   const userPrompt = [
     `Phrase: "${phrase}"`,
     origin,
@@ -463,6 +470,7 @@ export async function handler(event, context) {
     const explainBands = explainTheme === "song" ? parseBandList(body.customBands) : null;
     const songArtist = sanitizeExplainText(body.songArtist, 60);
     const songTitle = sanitizeExplainText(body.songTitle, 60);
+    const songBand = sanitizeExplainText(body.songBand, 60);
 
     try {
       const raw = await callGroqForExplanation(apiKey, {
@@ -475,6 +483,7 @@ export async function handler(event, context) {
         bands: explainBands,
         songArtist,
         songTitle,
+        songBand,
       });
       const explanation = raw ? raw.replace(/^["'\s]+|["'\s]+$/g, '') : "";
       if (!explanation || explanation.length < 20 || explanation.length > 600) {

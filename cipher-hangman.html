@@ -2309,6 +2309,9 @@
                 customBands,
                 songArtist: data.song && data.song.artist,
                 songTitle: data.song && data.song.title,
+                // The exact band (from the player's custom list) that this song
+                // actually came from — lets the explain mode name one band
+                songBand: data.song && data.song.band,
                 source: data.source || 'llm',
             };
             return data.phrase;
@@ -2343,6 +2346,7 @@
                         customBands: lastPhraseMeta && lastPhraseMeta.customBands,
                         songArtist: lastPhraseMeta && lastPhraseMeta.songArtist,
                         songTitle: lastPhraseMeta && lastPhraseMeta.songTitle,
+                        songBand: lastPhraseMeta && lastPhraseMeta.songBand,
                     }),
                 });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
