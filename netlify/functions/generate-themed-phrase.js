@@ -259,7 +259,9 @@ function buildExplainOrigin({ theme, bands, songArtist, songTitle, songBand, cus
     return `PHRASE ORIGIN (use as fact): a well-known SONG LYRIC line — the artist is not verified, so phrase its origin generally without inventing a song.${via}`;
   }
   if (theme === "custom" && customTheme) {
-    return `PHRASE ORIGIN (use as fact): a well-known phrase or keyword connected to the custom theme "${customTheme}" that the player picked in the menu.`;
+    return `PHRASE ORIGIN (context): the phrase was served for the player's custom theme "${customTheme}".
+Make sentence 1 SPECIFIC and informative, NOT generic: if you know the actual source of the phrase (the film/TV show, book, speech, song or proverb it really comes from), name it;
+otherwise explain what the phrase means and when people say it, and state the concrete link to the theme "${customTheme}" (what about the phrase makes it belong to this theme).`;
   }
   const label = {
     movie: "a well-known MOVIE QUOTE",
