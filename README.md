@@ -1,4 +1,4 @@
-[![Netlify Status](https://api.netlify.com/api/v1/badges/0f7b6e9f-90b9-4af2-bb04-fcec241a8a69/deploy-status)](https://app.netlify.com/projects/hangman-cipher/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/bc8c8e7e-7200-4022-b6eb-8ef587c439a6/deploy-status)](https://app.netlify.com/projects/hangman-cipher/deploys)
 
 This project was created for the course LNG302 Natural Language Processing at the ICU as a way to incorporate NLPs, display and explain entropy and surprisal in the context of bits, and to teach different ciphers. This was inspired by how intertwined linguistics, ciphers, and programming were throughout the last century.
 
@@ -176,7 +176,7 @@ I got two beta testers to repeatedly try my code throughout, and implemented the
 
 ### Round 1
 
-The deployed endpoint was tested directly (POST requests to the live `generate-themed-phrase` function), since phrase validity and spoiler-safety are the two things that can break the game for a player.
+The deployed endpoint was tested directly (POST requests to the live `generate-themed-phrase` function), since phrase validity and spoiler-safety are the two things that can break the game for a player. These tests were conducted via OpenCode GLM-5.3-Flash. 
 
 **Test 1 - Phrase generation: format + difficulty constraints.**
 30 calls (the full 5-theme × 3-difficulty matrix, run twice), each response checked against the same rules the browser would enforce: uppercase A-Z and spaces only, at least two words, length window for the chosen difficulty (≤40 for easy, ≥25 for hard), and book titles containing no `BY` attribution.
@@ -222,7 +222,9 @@ After Round 1, the following improvements were made:
 | Song-theme provenance | 6 / 6 real lyrics | 6 / 6 real lyrics |
 | Custom-band attribution in explain mode | "the custom band thornhill, sleep token" (list as one blob) | "the song Arkangel by Thornhill" (single verified band + song) |
 
-Hard-mode examples actually served after the fix: THE CURIOUS INCIDENT OF THE DOG IN THE NIGHT TIME, A JOURNEY OF A THOUSAND MILES BEGINS WITH A SINGLE STEP, THE GRASS IS ALWAYS GREENER ON THE OTHER SIDE, NECESSITY IS THE MOTHER OF INVENTION, ALL WORK AND NO PLAY MAKES JACK A DULL BOY, THERE IS NO PLACE LIKE HOME. Remaining limitations: without the avoid-list the model still repeats its favourites (THE CURIOUS INCIDENT... appeared 5 times in 10 fresh requests - the fix needs the frontend list, which the game sends), ~20% of hard-mode LLM phrases are still invented-sounding, and one mangled quote survived the new wording rule (HERES LOOKING RAY). Repetition *without* the avoid-list is unchanged by design - variety for a fresh session relies on the model alone.
+Hard-mode examples actually served after the fix: THE CURIOUS INCIDENT OF THE DOG IN THE NIGHT TIME, A JOURNEY OF A THOUSAND MILES BEGINS WITH A SINGLE STEP, THE GRASS IS ALWAYS GREENER ON THE OTHER SIDE, NECESSITY IS THE MOTHER OF INVENTION, ALL WORK AND NO PLAY MAKES JACK A DULL BOY, THERE IS NO PLACE LIKE HOME. 
+<br><br>
+Remaining limitations: without the avoid-list the model still repeats its favourites (THE CURIOUS INCIDENT... appeared 5 times in 10 fresh requests - the fix needs the frontend list, which the game sends), ~20% of hard-mode LLM phrases are still invented-sounding, and one mangled quote survived the new wording rule (HERES LOOKING RAY). Otherwise, repetition is unchanged. 
 
 
 
