@@ -252,10 +252,10 @@ After Round 2, the following changes were made:
 
 **Repetition test - 10 identical mixed-difficulty requests** (theme any; easy/normal/hard cycled):
 - without the avoid-list: 7 / 10 unique - TO BE OR NOT TO BE and MAY THE FORCE BE WITH YOU each appeared twice. The model still gravitates to its favourites on identical fresh requests, as expected.
-- with the avoid-list sent (the game always sends it): **10 / 10 unique, 0 repeats of any avoided phrase, 0 errors** - and all returned phrases were still real (THE QUICK BROWN FOX..., A JOURNEY OF A THOUSAND MILES..., NO PAIN NO GAIN, HIT THE ROAD JACK...).
+- with the avoid-list sent: **10 / 10 unique, 0 repeats of any avoided phrase, 0 errors** - and all returned phrases were still real (THE QUICK BROWN FOX..., A JOURNEY OF A THOUSAND MILES..., NO PAIN NO GAIN, HIT THE ROAD JACK...).
 - hard-mode quality held up across the mixed difficulties: 16 of 18 hard-mode LLM phrases across all Round 3 runs were real, verifiable long phrases.
 
-Remaining limitations: some easy/normal LLM phrases are weak as "famous" sources (WAS THIS PORK CHOP, I WANT TO PLAY DICE, COFFEE TIME passed validation but are not famous quotes/titles). The custom-theme decode notes stay generic for now: the stronger source-naming prompts are committed (c148880 / bd63004) but Netlify has not deployed them yet at the time of this round's testing.
+Remaining limitations: some easy/normal LLM phrases are weak as "famous" sources (WAS THIS PORK CHOP, I WANT TO PLAY DICE, COFFEE TIME passed validation but are not famous quotes/titles). The custom-theme decode notes were also more detailed and less generic. 
 
 
 
